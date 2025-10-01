@@ -5,57 +5,74 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   include FactoryBot::Syntax::Methods
 
   def setup
-    # Clear cache and reset configuration
+    super
 
-    # Create test user with unique email per test to avoid parallel test interference
-    test_id = "#{self.class.name}_#{@NAME}".gsub(/[^a-z0-9]/i, "_")
-    @user = create(:user, email: "test_#{test_id}@example.com", password: "password123")
-    @invalid_email = "nonexistent_#{test_id}@example.com"
+    # Clear cache for this test
+    # Rails.cache.clear
+
+    @password = "password123"
+    @user = create(:user, password: @password)
+    # Reload to ensure encrypted_password is set
+    @user.reload
+    @invalid_email = "nonexistent@example.com"
     @invalid_password = "wrongpassword"
 
-    # Disable CSRF protection for integration tests
+    # Track IPs used in this test for cleanup
+    @test_ips = []
   end
 
   # Test successful authentication with actual HTTP request
   test "successful login creates security event via HTTP request" do
+    test_ip = worker_ip(101)
     initial_count = Beskar::SecurityEvent.count
+
+    # Ensure IP is not banned and not rate limited
+    refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
+    assert @user.reload.valid_password?(@password), "User password should be valid"
 
     post "/users/sign_in", params: {
       user: {
         email: @user.email,
-        password: "password123"
+        password: @password
       }
     }, headers: {
       "User-Agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      "X-Forwarded-For" => "192.168.1.100"
+      "X-Forwarded-For" => test_ip
     }
 
-    # Check if login was successful (redirect) or failed (422)
-    # Check that security event was created regardless of success/failure
+    # Debug response if not redirect
+    if response.status != 302 && response.status != 303
+      puts "\n=== RESPONSE DEBUG ==="
+      puts "Status: #{response.status}"
+      puts "Flash: #{flash.inspect}"
+      puts "Body preview: #{response.body[0..500]}"
+      puts "=====================\n"
+    end
+
+    assert_redirected_to root_path
+
+    # Should create security event
     assert_equal initial_count + 1, Beskar::SecurityEvent.count
 
     event = Beskar::SecurityEvent.last
     assert_not_nil event, "Security event should be created"
-    assert_equal "192.168.1.100", event.ip_address
+    assert_equal test_ip, event.ip_address
     assert_includes event.user_agent, "Mozilla/5.0"
     assert_not_nil event.metadata
-    assert event.risk_score.between?(1, 100)
+    # Risk score can vary in parallel tests due to historical data
+    # risk score depends on ip address - as we're randomizing it, we can not predict exact score
+    assert event.risk_score >= 10, "Risk score should be at least 10 (got #{event.risk_score})"
+    assert event.risk_score <= 30, "Risk score should be reasonable (got #{event.risk_score})"
 
-    if response.status == 302 || response.status == 303
-      # Successful login
-      assert_redirected_to root_path
-      assert_equal "login_success", event.event_type
-      assert_equal @user.id, event.user_id
-    else
-      # Login failed
-      assert_response :unprocessable_content
-      assert_equal "login_failure", event.event_type
-      assert_nil event.user_id
-    end
+    # Successful login should redirect (verify not blocked by rate limiting/WAF)
+    refute Beskar::BannedIp.banned?(test_ip), "IP should not be auto-banned after successful login"
+    assert_redirected_to root_path
+    assert_equal "login_success", event.event_type
+    assert_equal @user.id, event.user_id
   end
 
   test "failed login creates security event via HTTP request" do
-    ip_address = worker_ip(1)
+    ip_address = worker_ip(2)
     user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address, user_agent: user_agent).count
 
@@ -85,7 +102,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "failed login with existing user email creates security event" do
-    ip_address = worker_ip(1)
+    ip_address = worker_ip(103)
     user_agent = "Mozilla/5.0 (X11; Linux x86_64)"
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address, user_agent: user_agent).count
 
@@ -166,33 +183,40 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "accessing protected resource after successful login" do
-    # First, attempt login
+    test_ip = worker_ip(20)
+
+    # Ensure clean state
+    refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
+    assert @user.valid_password?("password123"), "User password should be valid"
+
+    # Verify rate limiter allows the request
+    rate_check = Beskar::Services::RateLimiter.check_ip_rate_limit(test_ip)
+    assert rate_check[:allowed], "Rate limiter should allow request: #{rate_check.inspect}"
+
+    # First, attempt login with valid credentials
     post "/users/sign_in", params: {
       user: {
         email: @user.email,
         password: "password123"
       }
+    }, headers: {
+      "X-Forwarded-For" => test_ip
     }
 
-    # If login succeeded, test protected access
-    if response.status == 302 || response.status == 303
-      follow_redirect!
-      assert_response :success
+    # Login should succeed and redirect
+    assert_redirected_to root_path, "Login should succeed and redirect (got #{response.status})"
+    follow_redirect!
+    assert_response :success
 
-      # Now access protected resource
-      get "/restricted"
-      assert_response :success
-    else
-      # If login failed, just verify we can't access protected resource
-      get "/restricted"
-      assert_redirected_to "/users/sign_in"
-    end
+    # Now access protected resource
+    get "/restricted"
+    assert_response :success
   end
 
   test "device information is captured from different user agents" do
     # Test just one user agent to keep it simple and reliable
     user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15"
-    ip_address = worker_ip(1)
+    ip_address = worker_ip(21)
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address).count
 
     post "/users/sign_in", params: {
@@ -222,7 +246,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "concurrent login attempts from different IPs create separate security events" do
-    ip_addresses = [ "192.168.1.10", "192.168.1.11", "192.168.1.12" ]
+    ip_addresses = [ worker_ip(22), worker_ip(23), worker_ip(24) ]
 
     # Simulate concurrent login attempts
     ip_addresses.each do |ip|
@@ -250,7 +274,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "login with empty user agent is tracked" do
-    ip_address = worker_ip(1)
+    ip_address = worker_ip(25)
     user_agent = "" # Empty user agent
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address, user_agent: user_agent).count
 
@@ -273,6 +297,11 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "session-based authentication tracking works across requests" do
+    test_ip = worker_ip(26)
+
+    # Ensure clean state
+    refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
+
     # Attempt login first
     post "/users/sign_in", params: {
       user: {
@@ -280,33 +309,34 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
         password: "password123"
       }
     }, headers: {
-      "X-Forwarded-For" => "192.168.1.50"
+      "X-Forwarded-For" => test_ip
     }
 
     login_event = Beskar::SecurityEvent.last
     assert_not_nil login_event, "Login attempt should create security event"
 
-    if response.status == 302 || response.status == 303
-      # Successful login - test authenticated request
-      get "/restricted"
-      assert_response :success
+    # Successful login should redirect
+    assert_redirected_to root_path, "Login should succeed (got #{response.status})"
 
-      # Logout
-      delete "/users/sign_out"
-      assert_redirected_to root_path
+    # Test authenticated request
+    get "/restricted"
+    assert_response :success
 
-      # Try to access protected resource after logout
-      get "/restricted"
-      assert_redirected_to "/users/sign_in"
-    else
-      # Failed login - verify can't access protected resource
-      get "/restricted"
-      assert_redirected_to "/users/sign_in"
-    end
+    # Logout
+    delete "/users/sign_out"
+    assert_redirected_to root_path
+
+    # Try to access protected resource after logout
+    get "/restricted"
+    assert_redirected_to "/users/sign_in"
   end
 
   test "metadata contains request path and referer information" do
     referer_url = "https://example.com/some-page"
+    test_ip = worker_ip(127)
+
+    # Ensure clean state
+    refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
 
     post "/users/sign_in", params: {
       user: {
@@ -315,15 +345,14 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
       }
     }, headers: {
       "Referer" => referer_url,
-      "X-Forwarded-For" => "192.168.1.75"
+      "X-Forwarded-For" => test_ip
     }
 
     event = Beskar::SecurityEvent.last
     assert_not_nil event.metadata, "Event should have metadata"
-    # Check request_path in metadata - could be /users/sign_in or /unauthenticated (failure redirect)
-    if event.metadata["request_path"]
-      assert_includes [ "/users/sign_in", "/unauthenticated" ], event.metadata["request_path"]
-    end
+    # Request path should be the sign in path for login success
+    assert_not_nil event.metadata["request_path"]
+    assert_equal "/users/sign_in", event.metadata["request_path"]
     assert_equal referer_url, event.metadata["referer"]
     # Session ID might be in different formats or nil in test environment
     session_id = event.metadata["session_id"]
@@ -333,7 +362,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
 
   test "rate limiting respects different IP addresses" do
     # Create attempts from different IPs to test IP-based isolation
-    ips = [ "192.168.1.301", "192.168.1.302", "192.168.1.303" ]
+    ips = [ worker_ip(28), worker_ip(29), worker_ip(30) ]
 
     ips.each_with_index do |ip, index|
       # Make several attempts for this IP

@@ -195,13 +195,15 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     # The access attempt should be tracked
     assert_response :success
 
-    # Verify that the location change would be detected if we had proper session tracking
+    # Verify that security events are being tracked
     recent_events = Beskar::SecurityEvent.where(user: @target_user).order(:created_at)
-    if recent_events.count >= 1
-      last_event = recent_events.last
-      # Risk score should be elevated for location change patterns
-      assert_not_nil last_event
-    end
+    assert recent_events.count >= 1,
+      "Should have at least one security event for location change"
+    
+    last_event = recent_events.last
+    assert_not_nil last_event, "Should have a security event"
+    # Location changes can elevate risk scores
+    assert last_event.risk_score >= 0, "Should have a risk score"
   end
 
   test "botnet attack simulation with varied timing patterns" do

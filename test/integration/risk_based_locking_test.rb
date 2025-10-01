@@ -32,16 +32,16 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     
-    # User should be logged in
-    assert_equal @user.id, session[:user_id] if session[:user_id]
-    
     # Security event should be created
-    assert @user.security_events.login_successes.any?
+    assert @user.security_events.login_successes.any?,
+      "Should create login success event"
     
-    # User should not be locked even with high risk (lockable module not enabled in test)
-    # Just verify that locking was not attempted
+    # User should not be locked when feature is disabled
+    # Note: lockable module may not be enabled in test environment
+    @user.reload
     if @user.respond_to?(:access_locked?)
-      assert_not @user.access_locked?
+      assert_not @user.access_locked?,
+        "User should not be locked when risk-based locking is disabled"
     end
   end
 
@@ -59,12 +59,16 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
     
     # Check the risk score of the created event
     last_event = @user.security_events.login_successes.last
-    assert last_event
-    assert last_event.risk_score < 90, "Risk score should be below threshold"
+    assert_not_nil last_event, "Should create login success event"
+    assert last_event.risk_score < 90,
+      "Risk score #{last_event.risk_score} should be below threshold of 90"
     
-    # User should not be locked (lockable module not enabled in test)
+    # User should not be locked when risk is below threshold
+    # Note: lockable module may not be enabled in test environment
+    @user.reload
     if @user.respond_to?(:access_locked?)
-      assert_not @user.access_locked?
+      assert_not @user.access_locked?,
+        "User should not be locked when risk score is below threshold"
     end
   end
 

@@ -22,19 +22,16 @@ end
 
 # Include FactoryBot methods in tests
 class ActiveSupport::TestCase
-  # Run tests in parallel with specified workers
   parallelize(workers: :number_of_processors)
   include FactoryBot::Syntax::Methods
 
-  # Use transactional tests for database isolation
   self.use_transactional_tests = true
 
-  # Simple setup and teardown
-  setup do
+  parallelize_setup do |worker|
     Rails.cache.clear
   end
 
-  teardown do
+  parallelize_teardown do |worker|
     Rails.cache.clear
   end
 end
@@ -43,8 +40,17 @@ end
 class ActionDispatch::IntegrationTest
   include FactoryBot::Syntax::Methods
 
-  setup do
+  # Per-worker setup for integration tests
+  parallelize_setup do |worker|
     Rails.cache.clear
+  end
+
+  parallelize_teardown do |worker|
+    Rails.cache.clear
+  end
+
+  setup do
+    Rails.application.reload_routes_unless_loaded
   end
 
   # Helper method to get unique IP addresses per test method
@@ -54,4 +60,4 @@ class ActionDispatch::IntegrationTest
   end
 end
 
-FactoryBot.definition_file_paths = [File.expand_path("factories", __dir__)]
+FactoryBot.definition_file_paths = [ File.expand_path("factories", __dir__) ]

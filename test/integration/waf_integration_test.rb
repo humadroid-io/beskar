@@ -385,17 +385,18 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
   test "WAF detects when request matches multiple patterns" do
     ip = worker_ip(110)
     
-    # This path could match multiple patterns
+    # This path should match multiple patterns (wordpress + path traversal)
     get "/wp-admin/../../../etc/passwd", headers: { "X-Forwarded-For" => ip }
     
     # Should detect at least one violation
-    assert Beskar::Services::Waf.get_violation_count(ip) > 0
+    assert Beskar::Services::Waf.get_violation_count(ip) > 0,
+      "Should detect WAF violations for malicious path"
     
+    # Should create security event
     event = Beskar::SecurityEvent.where(ip_address: ip, event_type: 'waf_violation').last
-    if event
-      # Should potentially have multiple patterns detected
-      assert event.metadata['waf_analysis']
-    end
+    assert_not_nil event, "Should create security event for WAF violation"
+    assert_not_nil event.metadata['waf_analysis'],
+      "Security event should include WAF analysis metadata"
   end
 
   # IPv6 support

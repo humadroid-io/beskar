@@ -38,7 +38,7 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     assert_select "form" # Login form should be present
   end
 
-  test "handles nil and empty email addresses" do
+  test "handles nil and empty email addresses without crashing" do
     test_cases = [
       {email: nil, password: "password123", description: "nil email"},
       {email: "", password: "password123", description: "empty email"},
@@ -61,18 +61,34 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
       # Should handle gracefully without crashing
       # Devise returns 422 for invalid parameters but still shows the form
       assert_response :unprocessable_content, "Failed for #{test_case[:description]}"
-
-      # Should create security event only if we have some email to track
-      if test_case[:email].present? && test_case[:email].strip.present?
-        event = Beskar::SecurityEvent.where(
-          attempted_email: test_case[:email],
-          ip_address: worker_ip(20 + index)
-        ).last
-
-        assert_equal "login_failure", event.event_type
-        assert_equal test_case[:email], event.attempted_email
-      end
     end
+  end
+
+  test "creates security events for valid email with invalid password" do
+    test_email = "valid@example.com"
+    ip = worker_ip(25)
+
+    post "/users/sign_in", params: {
+      user: {
+        email: test_email,
+        password: "wrongpassword"
+      }
+    }, headers: {
+      "X-Forwarded-For" => ip,
+      "User-Agent" => "EdgeCase/Test"
+    }
+
+    assert_response :unprocessable_content
+
+    # Should create security event with valid email
+    event = Beskar::SecurityEvent.where(
+      attempted_email: test_email,
+      ip_address: ip
+    ).last
+
+    assert_not_nil event, "Should create security event for valid email"
+    assert_equal "login_failure", event.event_type
+    assert_equal test_email, event.attempted_email
   end
 
   test "handles extremely long email addresses" do
@@ -126,12 +142,11 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
       # Devise returns 422 for invalid parameters but still shows the form
       assert_response :unprocessable_content, "Failed for #{test_case[:description]}"
 
-      # Verify security event handles special characters
+      # Should create security event that handles special characters
       event = Beskar::SecurityEvent.where(ip_address: worker_ip(40 + index)).last
-      if event
-        assert_not_nil event.attempted_email
-        assert_not_nil event.metadata
-      end
+      assert_not_nil event, "Should create security event for #{test_case[:description]}"
+      assert_not_nil event.attempted_email, "Event should track attempted email"
+      assert_not_nil event.metadata, "Event should have metadata"
     end
   end
 
@@ -156,13 +171,12 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
       # Devise returns 422 for invalid parameters but still shows the form
       assert_response :unprocessable_content, "Failed for #{test_case[:description]}"
 
-      # Should still create security event with whatever data is available
+      # Should create security event with available data
       event = Beskar::SecurityEvent.where(attempted_email: "header#{index}@example.com").last
-      if event
-        assert_equal "login_failure", event.event_type
-        # IP might be localhost or nil depending on how the system handles missing headers
-        assert_not_nil event.ip_address
-      end
+      assert_not_nil event, "Should create security event for #{test_case[:description]}"
+      assert_equal "login_failure", event.event_type
+      # Should capture some IP address (might be localhost for missing headers)
+      assert_not_nil event.ip_address, "Event should have an IP address"
     end
   end
 
@@ -272,9 +286,9 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
 
     # Should create security event and flag as suspicious
     event = Beskar::SecurityEvent.where(ip_address: worker_ip(24)).last
-    if event
-      assert event.risk_score >= 10, "Suspicious parameters should have some risk score"
-    end
+    assert_not_nil event, "Should create security event for suspicious parameters"
+    assert event.risk_score >= 10,
+      "Suspicious parameters should have elevated risk score (got #{event.risk_score})"
   end
 
   test "handles logout without active session" do

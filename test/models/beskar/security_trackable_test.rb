@@ -227,6 +227,8 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
   end
 
   test "should respect auto_analyze_patterns configuration" do
+    skip "SecurityAnalysisJob not defined" unless defined?(Beskar::SecurityAnalysisJob)
+
     original_config = Beskar.configuration.security_tracking
 
     # Disable auto analysis
@@ -236,27 +238,23 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
 
     # Mock the job to verify it's not called
     job_called = false
-    if defined?(Beskar::SecurityAnalysisJob)
-      Beskar::SecurityAnalysisJob.stub_const(:perform_later, ->(*args) { job_called = true }) do
-        @user.analyze_suspicious_patterns_async
-      end
+    Beskar::SecurityAnalysisJob.stub_const(:perform_later, ->(*args) { job_called = true }) do
+      @user.analyze_suspicious_patterns_async
     end
 
     assert_not job_called, "Should not queue analysis job when auto_analyze_patterns is disabled"
 
-    # Re-enable and test (if job is defined)
-    if defined?(Beskar::SecurityAnalysisJob)
-      Beskar.configure do |config|
-        config.security_tracking = original_config.merge(auto_analyze_patterns: true)
-      end
-
-      job_called = false
-      Beskar::SecurityAnalysisJob.stub_const(:perform_later, ->(*args) { job_called = true }) do
-        @user.analyze_suspicious_patterns_async
-      end
-
-      assert job_called, "Should queue analysis job when auto_analyze_patterns is enabled"
+    # Re-enable and test
+    Beskar.configure do |config|
+      config.security_tracking = original_config.merge(auto_analyze_patterns: true)
     end
+
+    job_called = false
+    Beskar::SecurityAnalysisJob.stub_const(:perform_later, ->(*args) { job_called = true }) do
+      @user.analyze_suspicious_patterns_async
+    end
+
+    assert job_called, "Should queue analysis job when auto_analyze_patterns is enabled"
 
     # Restore original config
     Beskar.configuration.security_tracking = original_config
