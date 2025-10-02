@@ -9,8 +9,8 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     reset!
 
     # Create test users - focus on security event creation rather than authentication
-    @target_user = create(:user, email: "target@example.com", password: "password123", password_confirmation: "password123")
-    @other_user = create(:user, email: "other@example.com", password: "password123", password_confirmation: "password123")
+    @target_user = create(:devise_user, email: "target@example.com", password: "password123", password_confirmation: "password123")
+    @other_user = create(:devise_user, email: "other@example.com", password: "password123", password_confirmation: "password123")
   end
 
   def teardown
@@ -24,8 +24,8 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     # Simulate distributed brute force attack by creating failed login attempts
     attack_ips.each do |ip|
       3.times do |attempt|
-        post "/users/sign_in", params: {
-          user: {
+        post "/devise_users/sign_in", params: {
+          devise_user: {
             email: target_email,
             password: "wrong_password_#{attempt}"
           }
@@ -65,8 +65,8 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     ]
 
     user_agents.each_with_index do |user_agent, index|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "victim#{index}@example.com",
           password: "leaked_password_#{index}"
         }
@@ -103,8 +103,8 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     )
 
     # Now simulate attacker trying to login with correct credentials but from suspicious location
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @target_user.email,
         password: "wrong_password" # Use wrong password to ensure failure for test
       }
@@ -187,7 +187,7 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     )
 
     # Simulate access from completely different location shortly after
-    get "/users/sign_in", headers: {
+    get "/devise_users/sign_in", headers: {
       "User-Agent" => "Mozilla/5.0 (X11; Linux x86_64) Suspicious/1.0",
       "X-Forwarded-For" => "203.5.113.250" # Different country IP
     }
@@ -217,8 +217,8 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     target_email = @target_user.email
 
     botnet_ips.each do |ip|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: target_email,
           password: "botnet_attempt"
         }
@@ -252,8 +252,8 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     ]
 
     test_emails.each do |email|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: email,
           password: "enumeration_password"
         }

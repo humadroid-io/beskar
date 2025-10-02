@@ -140,7 +140,7 @@ module Beskar
 
         PLATFORM_PATTERNS.each do |platform, pattern|
           if match = user_agent.match(pattern)
-            version = match[1]&.tr('_', '.')
+            version = match[1]&.tr("_", ".")
 
             case platform
             when :windows
@@ -188,23 +188,39 @@ module Beskar
         risk = 0
 
         # Bot detection adds significant risk
-        risk += 30 if bot?(user_agent)
+        if bot?(user_agent)
+                risk += 30
+        Rails.logger.info "Bot detected: #{user_agent}, adding 30 risk"
+        end
 
         # Suspicious patterns
-        risk += 15 if user_agent.length < 20 || user_agent.length > 500
-        risk += 10 if user_agent.match?(/test|debug|script/i)
-        risk += 5 if user_agent.count('()') > 3
+        if user_agent.length < 20 || user_agent.length > 500
+                risk += 15
+        Rails.logger.info "Suspicious length: #{user_agent.length}, adding 15 risk"
+        end
+
+        if user_agent.match?(/test|debug|script/i)
+                risk += 10
+        Rails.logger.info "Suspicious pattern: #{user_agent}, adding 10 risk"
+        end
+
+        if user_agent.count("()") > 3
+                risk += 5
+        Rails.logger.info "Suspicious pattern: #{user_agent}, adding 5 risk"
+        end
 
         # Very old browsers might be suspicious
         if browser_info = detect_browser(user_agent)
           if browser_info.match?(/Chrome (\d+)/) && $1.to_i < 90
             risk += 5
+            Rails.logger.info "Suspicious browser: #{browser_info}, adding 5 risk"
           elsif browser_info.match?(/Firefox (\d+)/) && $1.to_i < 90
             risk += 5
+            Rails.logger.info "Suspicious browser: #{browser_info}, adding 5 risk"
           end
         end
 
-        [risk, 50].min # Cap at 50 to leave room for other risk factors
+        [ risk, 50 ].min # Cap at 50 to leave room for other risk factors
       end
 
       private

@@ -49,7 +49,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_131000) do
     t.index ["user_type", "user_id"], name: "index_beskar_security_events_on_user_type_and_user_id"
   end
 
-  create_table "users", force: :cascade do |t|
+  create_table "devise_users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
@@ -69,7 +69,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_01_131000) do
     t.datetime "locked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["email"], name: "index_devise_users_on_email", unique: true
+    t.index ["reset_password_token"], name: "index_devise_users_on_reset_password_token", unique: true
   end
+
+  create_table "sessions", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "ip_address"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "email_address", null: false
+    t.string "password_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+  end
+
+  add_foreign_key "sessions", "users"
 end

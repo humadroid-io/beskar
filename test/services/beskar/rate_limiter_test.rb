@@ -5,7 +5,7 @@ class Beskar::Services::RateLimiterTest < BeskarTestBase
   def setup
     super
     @request = mock_request
-    @user = create(:user)
+    @user = create(:devise_user)
     @rate_limiter = Beskar::Services::RateLimiter
   end
 
@@ -189,7 +189,7 @@ class Beskar::Services::RateLimiterTest < BeskarTestBase
   end
 
   test "should detect suspicious patterns" do
-    user = User.create!(email: "suspicious#{Time.current.to_f}@example.com", password: "password123")
+    user = DeviseUser.create!(email: "suspicious#{Time.current.to_f}@example.com", password: "password123")
 
     # Create rapid failed attempts for pattern detection
     3.times do |i|
@@ -208,7 +208,7 @@ class Beskar::Services::RateLimiterTest < BeskarTestBase
   end
 
   test "should detect attack pattern types" do
-    user = User.create!(email: "attack#{Time.current.to_f}@example.com", password: "password123")
+    user = DeviseUser.create!(email: "attack#{Time.current.to_f}@example.com", password: "password123")
 
     # Create distributed attack pattern (same user, different IPs)
     ["192.168.1.1", "192.168.1.2"].each_with_index do |ip, i|
@@ -227,7 +227,7 @@ class Beskar::Services::RateLimiterTest < BeskarTestBase
   end
 
   test "should detect brute force single account pattern" do
-    user = User.create!(email: "brute#{Time.current.to_f}@example.com", password: "password123")
+    user = DeviseUser.create!(email: "brute#{Time.current.to_f}@example.com", password: "password123")
 
     # Create single IP, single account attempts
     3.times do |i|

@@ -4,7 +4,7 @@ require_relative "../../beskar_test_base"
 class Beskar::SecurityTrackableTest < BeskarTestBase
   def setup
     super
-    @user = create(:user)
+    @user = create(:devise_user)
     @request = mock_request
   end
 
@@ -21,7 +21,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
 
   test "should create security event on failed login tracking" do
     initial_count = Beskar::SecurityEvent.count
-    User.track_failed_authentication(@request, :user)
+    DeviseUser.track_failed_authentication(@request, :devise_user)
 
     event = Beskar::SecurityEvent.last
     assert_security_event_created(event, {
@@ -74,7 +74,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
 
   test "should get recent failed attempts" do
     # Create some failed attempts using factory
-    user_with_failures = create(:user, :with_failed_attempts)
+    user_with_failures = create(:devise_user, :with_failed_attempts)
 
     # Create an old attempt that shouldn't be included
     create(:security_event, :login_failure, :old, user: user_with_failures)
@@ -84,7 +84,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
   end
 
   test "should get recent successful logins" do
-    user_with_success = create(:user)
+    user_with_success = create(:devise_user)
 
     # Create some successful logins
     2.times do |i|
@@ -98,14 +98,14 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
   end
 
   test "should detect suspicious login pattern with rapid attempts" do
-    user = create(:user)
+    user = create(:devise_user)
     simulate_rapid_attempts(user, 3)
 
     assert user.suspicious_login_pattern?
   end
 
   test "should not detect suspicious pattern with normal attempts" do
-    user = create(:user)
+    user = create(:devise_user)
     # Create only 1 failed attempt
     create(:security_event, :login_failure, user: user, created_at: 1.minute.ago)
 
@@ -148,7 +148,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
     desktop_request = mock_request
 
     mobile_event = @user.track_authentication_event(mobile_request, :success)
-    desktop_user = create(:user)
+    desktop_user = create(:devise_user)
     desktop_event = desktop_user.track_authentication_event(desktop_request, :success)
 
     assert_security_event_created(mobile_event)
@@ -163,11 +163,11 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
 
   test "should increase risk score for users with recent failed attempts" do
     # Create 2 recent failed attempts to trigger risk score increase
-    user_with_failures = create(:user, :with_failed_attempts)
+    user_with_failures = create(:devise_user, :with_failed_attempts)
     event = user_with_failures.track_authentication_event(@request, :success)
 
     # Should have higher risk score due to recent failures
-    clean_user = create(:user)
+    clean_user = create(:devise_user)
     clean_event = clean_user.track_authentication_event(@request, :success)
 
     assert_security_event_created(event)
@@ -210,7 +210,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
     end
 
     initial_count = Beskar::SecurityEvent.count
-    User.track_failed_authentication(@request, :user)
+    DeviseUser.track_failed_authentication(@request, :devise_user)
 
     assert_equal initial_count, Beskar::SecurityEvent.count, "Should not create event when tracking disabled"
 
@@ -219,7 +219,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
       config.security_tracking = original_config.merge(track_failed_logins: true)
     end
 
-    User.track_failed_authentication(@request, :user)
+    DeviseUser.track_failed_authentication(@request, :devise_user)
     assert_equal initial_count + 1, Beskar::SecurityEvent.count, "Should create event when tracking enabled"
 
     # Restore original config
@@ -272,7 +272,7 @@ class Beskar::SecurityTrackableTest < BeskarTestBase
 
     # Both successful and failed login tracking should be disabled
     @user.track_authentication_event(@request, :success)
-    User.track_failed_authentication(@request, :user)
+    DeviseUser.track_failed_authentication(@request, :devise_user)
 
     assert_equal initial_count, Beskar::SecurityEvent.count, "Should not create events when security tracking disabled"
 

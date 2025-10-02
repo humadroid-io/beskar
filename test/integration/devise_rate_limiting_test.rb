@@ -5,7 +5,7 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
   include FactoryBot::Syntax::Methods
 
   def setup
-    @user = create(:user, email: "test@example.com", password: "password123", password_confirmation: "password123")
+    @user = create(:devise_user, email: "test@example.com", password: "password123", password_confirmation: "password123")
     @test_ip = worker_ip(169)
   end
 
@@ -18,8 +18,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
 
     # Make exactly the limit number of failed attempts
     ip_limit.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "nonexistent#{i}@example.com",
           password: "wrongpassword"
         }
@@ -38,8 +38,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
 
     # Next attempt should be blocked by rate limiter logic
     # (Note: This tests the rate limiter service, actual blocking would be in middleware)
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: "blocked@example.com",
         password: "wrongpassword"
       }
@@ -63,8 +63,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     ips = ["10.1.0.1", "10.1.0.2", "10.1.0.3", "10.1.0.4", "10.1.0.5", "10.1.0.6"]
 
     ips.each_with_index do |ip, index|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: target_email,
           password: "wrongpassword#{index}"
         }
@@ -84,8 +84,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
   test "rate limiting resets after time window expires" do
     # Make several failed attempts to approach the limit
     3.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "test#{i}@example.com",
           password: "wrongpassword"
         }
@@ -113,8 +113,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
 
     # Make some failed attempts
     3.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "wrong#{i}@example.com",
           password: "wrongpassword"
         }
@@ -124,8 +124,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     end
 
     # Make successful login
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -153,8 +153,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
 
     # Make failed attempts with different user agents
     user_agents.each_with_index do |user_agent, index|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "test#{index}@example.com",
           password: "wrongpassword"
         }
@@ -177,8 +177,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     # 3 attempts from each IP = 9 total attempts on same account
     attack_ips.each_with_index do |ip, ip_index|
       3.times do |attempt|
-        post "/users/sign_in", params: {
-          user: {
+        post "/devise_users/sign_in", params: {
+          devise_user: {
             email: target_email,
             password: "distributed_attack_#{ip_index}_#{attempt}"
           }
@@ -222,8 +222,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     # Make 15 authentication attempts (exceeds default limit of 10)
     responses = []
     15.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "backoff#{i}@example.com",
           password: "wrongpassword"
         }
@@ -268,8 +268,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     # Exceed rate limit
     responses = []
     11.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "cooldown#{i}@example.com",
           password: "wrongpassword"
         }
@@ -310,8 +310,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
 
       # Each IP makes several requests
       3.times do |attempt|
-        post "/users/sign_in", params: {
-          user: {
+        post "/devise_users/sign_in", params: {
+          devise_user: {
             email: "global#{ip_suffix}_#{attempt}@example.com",
             password: "wrongpassword"
           }
@@ -343,8 +343,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
 
     # Make login failures
     5.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "ratetype#{i}@example.com",
           password: "wrongpassword"
         }
@@ -357,8 +357,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     failure_count = failure_check[:count]
 
     # Make successful login
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -368,7 +368,7 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
 
     # Logout to clean up session
-    delete "/users/sign_out"
+    delete "/devise_users/sign_out"
     assert_redirected_to root_path
 
     success_check = Beskar::Services::RateLimiter.check_ip_rate_limit(ip_address)
@@ -389,8 +389,8 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
   def create_rate_limit_violation(ip, count = 15)
     # Helper to create a rate limit violation
     count.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "violation#{i}@example.com",
           password: "wrongpassword"
         }

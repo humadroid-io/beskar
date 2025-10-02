@@ -80,7 +80,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Make many requests (should exceed rate limit)
     15.times do |i|
-      get "/users/sign_in", headers: { "X-Forwarded-For" => ip }
+      get "/devise_users/sign_in", headers: { "X-Forwarded-For" => ip }
     end
 
     # Should still be allowed
@@ -294,7 +294,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Exceed rate limit
     15.times do |i|
-      get "/users/sign_in", headers: { "X-Forwarded-For" => ip }
+      get "/devise_users/sign_in", headers: { "X-Forwarded-For" => ip }
     end
 
     # Make WAF violation
@@ -372,7 +372,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Make 5 requests from the same IP
     5.times do
-      get "/users/sign_in", headers: { "X-Forwarded-For" => ip }
+      get "/devise_users/sign_in", headers: { "X-Forwarded-For" => ip }
       results << response.status
     end
 

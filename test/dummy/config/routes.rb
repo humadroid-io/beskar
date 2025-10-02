@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
-  devise_for :users
+  resource :session
+  resources :passwords, param: :token
+  devise_for :devise_users
   mount Beskar::Engine => "/beskar"
 
   get "restricted" => "welcome#restricted"

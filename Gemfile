@@ -17,4 +17,6 @@ gem "rubocop-rails-omakase", require: false
 
 gem "devise"
 
+gem "bcrypt", "~> 3.1.7"
+
 gem "debug"

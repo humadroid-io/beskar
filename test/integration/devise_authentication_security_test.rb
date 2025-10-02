@@ -11,7 +11,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     # Rails.cache.clear
 
     @password = "password123"
-    @user = create(:user, password: @password)
+    @user = create(:devise_user, password: @password)
     # Reload to ensure encrypted_password is set
     @user.reload
     @invalid_email = "nonexistent@example.com"
@@ -30,8 +30,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
     assert @user.reload.valid_password?(@password), "User password should be valid"
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: @password
       }
@@ -76,8 +76,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address, user_agent: user_agent).count
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @invalid_email,
         password: @invalid_password
       }
@@ -106,8 +106,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     user_agent = "Mozilla/5.0 (X11; Linux x86_64)"
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address, user_agent: user_agent).count
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email, # Valid email but wrong password
         password: @invalid_password
       }
@@ -130,8 +130,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     ip_address = worker_ip(1) # Use unique IP per test
     user_agent = "curl/7.68.0"
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -155,8 +155,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
 
     # Make several failed attempts
     5.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: @invalid_email,
           password: @invalid_password
         }
@@ -179,7 +179,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
 
   test "accessing protected resource without login redirects to login" do
     get "/restricted"
-    assert_redirected_to "/users/sign_in"
+    assert_redirected_to "/devise_users/sign_in"
   end
 
   test "accessing protected resource after successful login" do
@@ -194,8 +194,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     assert rate_check[:allowed], "Rate limiter should allow request: #{rate_check.inspect}"
 
     # First, attempt login with valid credentials
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -219,8 +219,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     ip_address = worker_ip(21)
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address).count
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "wrongpassword"
       }
@@ -250,8 +250,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
 
     # Simulate concurrent login attempts
     ip_addresses.each do |ip|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: @user.email,
           password: "password123"
         }
@@ -278,8 +278,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     user_agent = "" # Empty user agent
     initial_count = Beskar::SecurityEvent.where(ip_address: ip_address, user_agent: user_agent).count
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -303,8 +303,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
 
     # Attempt login first
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -323,12 +323,12 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Logout
-    delete "/users/sign_out"
+    delete "/devise_users/sign_out"
     assert_redirected_to root_path
 
     # Try to access protected resource after logout
     get "/restricted"
-    assert_redirected_to "/users/sign_in"
+    assert_redirected_to "/devise_users/sign_in"
   end
 
   test "metadata contains request path and referer information" do
@@ -338,8 +338,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     # Ensure clean state
     refute Beskar::BannedIp.banned?(test_ip), "Test IP should not be banned"
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "password123"
       }
@@ -352,7 +352,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     assert_not_nil event.metadata, "Event should have metadata"
     # Request path should be the sign in path for login success
     assert_not_nil event.metadata["request_path"]
-    assert_equal "/users/sign_in", event.metadata["request_path"]
+    assert_equal "/devise_users/sign_in", event.metadata["request_path"]
     assert_equal referer_url, event.metadata["referer"]
     # Session ID might be in different formats or nil in test environment
     session_id = event.metadata["session_id"]
@@ -367,8 +367,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     ips.each_with_index do |ip, index|
       # Make several attempts for this IP
       3.times do
-        post "/users/sign_in", params: {
-          user: {
+        post "/devise_users/sign_in", params: {
+          devise_user: {
             email: "test#{index}@example.com",
             password: @invalid_password
           }
@@ -398,8 +398,8 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   def simulate_login_attempts(count, email, password, ip_address)
     events = []
     count.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: email,
           password: password
         }

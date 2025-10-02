@@ -4,7 +4,7 @@ module Beskar
   module Services
     class AccountLockerTest < ActiveSupport::TestCase
       setup do
-        @user = User.create!(
+        @user = DeviseUser.create!(
           email: 'test@example.com',
           password: 'password123',
           password_confirmation: 'password123'
@@ -48,8 +48,9 @@ module Beskar
 
         locker = AccountLocker.new(@user, risk_score: 90, reason: :high_risk_login)
         
-        # User model doesn't have :lockable module enabled
-        assert_not locker.lock!
+        # DeviseUser model now has :lockable module enabled, so lock should succeed
+        assert locker.lock!
+        assert @user.reload.access_locked?
       end
 
       test "should handle custom lock strategy" do

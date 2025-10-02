@@ -26,13 +26,13 @@ module Beskar
           if user.respond_to?(:track_authentication_event) && auth.request
             # Track the authentication event (creates security event)
             security_event = user.track_authentication_event(auth.request, :success)
-            
+
             # Check if account was locked due to high risk (only if immediate_signout is enabled)
             # This happens AFTER successful authentication but BEFORE the request completes
             # Requires :lockable module to be enabled on the user model
-            if Beskar.configuration.immediate_signout? && 
-               Beskar.configuration.risk_based_locking_enabled? && 
-               security_event && 
+            if Beskar.configuration.immediate_signout? &&
+               Beskar.configuration.risk_based_locking_enabled? &&
+               security_event &&
                user_was_just_locked?(user, security_event) &&
                user.respond_to?(:access_locked?) && user.access_locked?
               Rails.logger.warn "[Beskar] Signing out user #{user.id} due to high-risk lock"
@@ -41,7 +41,7 @@ module Beskar
             end
           end
         end
-        
+
         # Alternative approach using after_authentication is available but not enabled by default
         # Uncomment this to use the alternative approach (more targeted, only on authentication)
         # Warden::Manager.after_authentication do |user, auth, opts|
@@ -51,27 +51,36 @@ module Beskar
         # end
 
         Warden::Manager.before_failure do |env, opts|
-          if env && defined?(User)
+          if env
             request = ActionDispatch::Request.new(env)
-            User.track_failed_authentication(request, opts[:scope])
+            scope = opts[:scope]
+            
+            # Try to get model class from configuration
+            model_class = Beskar.configuration&.model_class_for_scope(scope)
+            
+            if model_class && model_class.respond_to?(:track_failed_authentication)
+              model_class.track_failed_authentication(request, scope)
+            else
+              Rails.logger.debug "[Beskar] No trackable model found for scope: #{scope}"
+            end
           end
         end
       end
     end
-    
+
     # Helper method to check if user was just locked
     def self.user_was_just_locked?(user, security_event)
       return false unless Beskar.configuration.risk_based_locking_enabled?
       return false unless security_event
       return false unless user&.respond_to?(:security_events)
-      
+
       # Check if an account_locked or lock_attempted event was just created
       recent_lock = user.security_events
-        .where(event_type: ['account_locked', 'lock_attempted'])
-        .where('created_at >= ?', 10.seconds.ago)
+        .where(event_type: [ "account_locked", "lock_attempted" ])
+        .where("created_at >= ?", 10.seconds.ago)
         .order(created_at: :desc)
         .first
-      
+
       recent_lock.present?
     end
 

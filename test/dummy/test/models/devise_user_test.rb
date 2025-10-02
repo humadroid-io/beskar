@@ -1,6 +1,6 @@
 require "test_helper"
 
-class UserTest < ActiveSupport::TestCase
+class DeviseUserTest < ActiveSupport::TestCase
   # test "the truth" do
   #   assert true
   # end

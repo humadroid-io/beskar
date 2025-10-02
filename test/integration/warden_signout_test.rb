@@ -3,7 +3,7 @@ require 'ostruct'
 
 class WardenSignoutTest < ActionDispatch::IntegrationTest
   setup do
-    @user = User.create!(
+    @user = DeviseUser.create!(
       email: 'warden_test@example.com',
       password: 'password123',
       password_confirmation: 'password123'

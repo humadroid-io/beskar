@@ -2,7 +2,7 @@ require 'test_helper'
 
 class RiskBasedLockingTest < ActionDispatch::IntegrationTest
   setup do
-    @user = User.create!(
+    @user = DeviseUser.create!(
       email: 'locktest@example.com',
       password: 'password123',
       password_confirmation: 'password123'
@@ -26,8 +26,8 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
     Beskar.configuration.security_tracking[:enabled] = true
 
     # Simulate a login with high risk factors
-    post user_session_path, params: {
-      user: { email: @user.email, password: 'password123' }
+    post devise_user_session_path, params: {
+      devise_user: { email: @user.email, password: 'password123' }
     }
 
     assert_response :redirect
@@ -51,8 +51,8 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
     Beskar.configuration.security_tracking[:enabled] = true
 
     # Login with normal conditions (low risk)
-    post user_session_path, params: {
-      user: { email: @user.email, password: 'password123' }
+    post devise_user_session_path, params: {
+      devise_user: { email: @user.email, password: 'password123' }
     }
 
     assert_response :redirect

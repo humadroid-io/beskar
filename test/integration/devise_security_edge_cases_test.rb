@@ -9,13 +9,13 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     super
 
     # Create fresh test user for each test
-    @user = create(:user, email: "edge@example.com", password: "password123")
+    @user = create(:devise_user, email: "edge@example.com", password: "password123")
   end
 
   test "handles malformed login parameters gracefully" do
     # Test with completely malformed parameters
     # Devise handles malformed parameters gracefully without raising exceptions
-    post "/users/sign_in", params: {
+    post "/devise_users/sign_in", params: {
       invalid: "structure"
     }, headers: {
       "X-Forwarded-For" => worker_ip(10)
@@ -28,7 +28,7 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
 
   test "handles missing user parameters" do
     # Test with missing user hash
-    post "/users/sign_in", params: {}, headers: {
+    post "/devise_users/sign_in", params: {}, headers: {
       "X-Forwarded-For" => worker_ip(11)
     }
 
@@ -48,8 +48,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     ]
 
     test_cases.each_with_index do |test_case, index|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: test_case[:email],
           password: test_case[:password]
         }
@@ -68,8 +68,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     test_email = "valid@example.com"
     ip = worker_ip(25)
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: test_email,
         password: "wrongpassword"
       }
@@ -95,8 +95,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     # Test with very long email (potential DoS attack)
     long_email = "a" * 1000 + "@example.com"
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: long_email,
         password: "password123"
       }
@@ -132,8 +132,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
         password: test_case[:password] || "defaultpassword"
       }
 
-      post "/users/sign_in", params: {
-        user: params
+      post "/devise_users/sign_in", params: {
+        devise_user: params
       }, headers: {
         "X-Forwarded-For" => worker_ip(40 + index),
         "Content-Type" => "application/x-www-form-urlencoded; charset=UTF-8"
@@ -161,8 +161,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     ]
 
     header_cases.each_with_index do |test_case, index|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "header#{index}@example.com",
           password: "wrongpassword"
         }
@@ -191,8 +191,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
 
     # Make 5 rapid requests in sequence (simulating concurrent behavior)
     5.times do |i|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "concurrent#{i}@example.com",
           password: "wrongpassword"
         }
@@ -229,8 +229,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
 
   #   # Even with cache failures, authentication should still proceed
   #   # (This tests graceful degradation, not successful login)
-  #   post "/users/sign_in", params: {
-  #     user: {
+  #   post "/devise_users/sign_in", params: {
+  #     devise_user: {
   #       email: @user.email,
   #       password: "wrongpassword"  # Use wrong password to test graceful failure handling
   #     }
@@ -247,8 +247,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     # Test with large payload that might cause memory issues
     large_data = "x" * 10000 # 10KB of data
 
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: "large@example.com",
         password: "password123",
         extra_data: large_data # Large unused parameter
@@ -277,7 +277,7 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
       "password_confirmation" => "different_password"
     }
 
-    post "/users/sign_in", params: suspicious_params, headers: {
+    post "/devise_users/sign_in", params: suspicious_params, headers: {
       "X-Forwarded-For" => worker_ip(24)
     }
 
@@ -293,7 +293,7 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
 
   test "handles logout without active session" do
     # Try to logout when not logged in
-    delete "/users/sign_out", headers: {
+    delete "/devise_users/sign_out", headers: {
       "X-Forwarded-For" => worker_ip(204)
     }
 
@@ -307,8 +307,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     ip = worker_ip(215)
 
     # Test with invalid credentials to verify graceful handling of session fixation attempts
-    post "/users/sign_in", params: {
-      user: {
+    post "/devise_users/sign_in", params: {
+      devise_user: {
         email: @user.email,
         password: "wrongpassword"
       }
@@ -337,8 +337,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
 
     suspicious_referrers.each_with_index do |referrer, index|
       ip = worker_ip(210 + index)
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "referrer#{index}@example.com",
           password: "wrongpassword"
         }
@@ -370,8 +370,8 @@ class DeviseSecurityEdgeCasesTest < ActionDispatch::IntegrationTest
     ]
 
     spoofing_attempts.each_with_index do |forwarded_for, index|
-      post "/users/sign_in", params: {
-        user: {
+      post "/devise_users/sign_in", params: {
+        devise_user: {
           email: "spoof#{index}@example.com",
           password: "wrongpassword"
         }

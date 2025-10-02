@@ -1,5 +1,5 @@
 class WelcomeController < ApplicationController
-  before_action :authenticate_user!, only: %i[restricted]
+  before_action :authenticate_devise_user!, only: %i[restricted]
 
   def index
   end

@@ -4,7 +4,7 @@ module Beskar
       extend ActiveSupport::Concern
 
       included do
-        has_many :security_events, class_name: 'Beskar::SecurityEvent', as: :user, dependent: :destroy
+        has_many :security_events, class_name: "Beskar::SecurityEvent", as: :user, dependent: :destroy
 
         # Hook into Devise callbacks if Devise is present and available
         if defined?(Devise) && respond_to?(:after_database_authentication)
@@ -25,23 +25,23 @@ module Beskar
           # We don't have a specific user, so we'll track by IP/session
           metadata = {
             scope: scope.to_s,
-            attempted_email: request.params.dig('user', 'email') || request.params.dig(scope, 'email'),
+            attempted_email: request.params.dig("devise_user", "email") || request.params.dig(scope, "email"),
             timestamp: Time.current.iso8601,
             session_id: request.session.id,
             request_path: request.path,
             referer: request.referer,
-            accept_language: request.headers['Accept-Language'],
-            x_forwarded_for: request.headers['X-Forwarded-For'],
-            x_real_ip: request.headers['X-Real-IP'],
+            accept_language: request.headers["Accept-Language"],
+            x_forwarded_for: request.headers["X-Forwarded-For"],
+            x_real_ip: request.headers["X-Real-IP"],
             device_info: Beskar::Services::DeviceDetector.detect(request.user_agent),
             geolocation: Beskar::Services::GeolocationService.locate(request.ip)
           }
 
-          attempted_email = request.params.dig('user', 'email') || request.params.dig(scope, 'email')
+          attempted_email = request.params.dig("devise_user", "email") || request.params.dig(scope, "email")
 
           Beskar::SecurityEvent.create!(
             user: nil,
-            event_type: 'login_failure',
+            event_type: "login_failure",
             ip_address: request.ip,
             user_agent: request.user_agent,
             attempted_email: attempted_email,
@@ -63,13 +63,18 @@ module Beskar
           score += device_detector.calculate_user_agent_risk(request.user_agent)
 
           # Additional failure-specific risk factors
-          score += 10 if request.params.dig('user', 'password')&.length.to_i > 50
+          if request.params.dig("user", "password")&.length.to_i > 50
+            score += 10
+            Rails.logger.info "Suspicious password length: #{request.params.dig("user", "password")&.length}, adding 10 risk"
+          end
 
           # Use geolocation service for location-based risk
           geolocation_service = Beskar::Services::GeolocationService.new
-          score += geolocation_service.calculate_location_risk(request.ip)
+          geo_score = geolocation_service.calculate_location_risk(request.ip)
+          score += geo_score
+          Rails.logger.info "Geolocation risk: #{geo_score}, adding #{geo_score} risk"
 
-          [score, 100].min # Cap at 100
+          [ score, 100 ].min # Cap at 100
         end
       end
 
@@ -100,7 +105,7 @@ module Beskar
           return
         end
 
-        event_type = result == :success ? 'login_success' : 'login_failure'
+        event_type = result == :success ? "login_success" : "login_failure"
 
         security_event = security_events.build(
           event_type: event_type,
@@ -136,21 +141,21 @@ module Beskar
         end
 
         # Queue background job for detailed analysis
-        Beskar::SecurityAnalysisJob.perform_later(self.id, 'login_success') if defined?(Beskar::SecurityAnalysisJob)
+        Beskar::SecurityAnalysisJob.perform_later(self.id, "login_success") if defined?(Beskar::SecurityAnalysisJob)
       rescue => e
         Rails.logger.warn "[Beskar] Failed to queue security analysis: #{e.message}"
       end
 
       def recent_failed_attempts(within: 1.hour)
         security_events.where(
-          event_type: 'login_failure',
+          event_type: "login_failure",
           created_at: within.ago..Time.current
         )
       end
 
       def recent_successful_logins(within: 24.hours)
         security_events.where(
-          event_type: 'login_success',
+          event_type: "login_success",
           created_at: within.ago..Time.current
         )
       end
@@ -171,13 +176,13 @@ module Beskar
       # Checks if account was just locked due to high risk and signs out if needed
       def check_high_risk_lock_and_signout(auth)
         return unless Beskar.configuration.risk_based_locking_enabled?
-        
+
         # Check if there's a very recent lock event (within last 5 seconds)
         recent_lock = security_events
-          .where(event_type: ['account_locked', 'lock_attempted'])
-          .where('created_at >= ?', 5.seconds.ago)
+          .where(event_type: [ "account_locked", "lock_attempted" ])
+          .where("created_at >= ?", 5.seconds.ago)
           .exists?
-        
+
         if recent_lock
           Rails.logger.warn "[Beskar] High-risk lock detected, signing out user #{id}"
           auth.logout
@@ -209,9 +214,9 @@ module Beskar
           session_id: request.session.id,
           request_path: request.path,
           referer: request.referer,
-          accept_language: request.headers['Accept-Language'],
-          x_forwarded_for: request.headers['X-Forwarded-For'],
-          x_real_ip: request.headers['X-Real-IP'],
+          accept_language: request.headers["Accept-Language"],
+          x_forwarded_for: request.headers["X-Forwarded-For"],
+          x_real_ip: request.headers["X-Real-IP"],
           device_info: Beskar::Services::DeviceDetector.detect(request.user_agent),
           geolocation: Beskar::Services::GeolocationService.locate(request.ip)
         }
@@ -230,23 +235,27 @@ module Beskar
         # Mobile device login during late hours
         if device_detector.mobile?(request.user_agent) && Time.current.hour.between?(22, 6)
           score += 5
+          Rails.logger.info "Mobile device login during late hours: #{request.user_agent}, adding 5 risk"
         end
 
         # Account-specific risk factors
-        score += 20 if recent_failed_attempts(within: 10.minutes).count >= 2
+        if recent_failed_attempts(within: 10.minutes).count >= 2
+          score += 20
+          Rails.logger.info "Recent failed attempts: #{recent_failed_attempts(within: 10.minutes).count}, adding 20 risk"
+        end
 
         # ADAPTIVE LEARNING: Check if this is an established pattern
         # If user has successfully logged in from this context before (especially after unlock),
         # reduce the risk score significantly
         if result == :success && established_pattern?(request)
           Rails.logger.info "[Beskar] Established pattern detected, reducing risk score"
-          score = [score * 0.3, 25].min.to_i # Reduce to 30% of original, cap at 25
+          score = [ score * 0.3, 25 ].min.to_i # Reduce to 30% of original, cap at 25
         end
 
         # Geographic risk assessment
         geolocation_service = Beskar::Services::GeolocationService.new
         recent_locations = recent_successful_logins(within: 4.hours).map do |event|
-          event.metadata&.dig('geolocation')
+          event.metadata&.dig("geolocation")
         end.compact
 
         # Don't apply geographic risk if this location is established
@@ -258,7 +267,7 @@ module Beskar
           )
         end
 
-        [score, 100].min # Cap at 100
+        [ score, 100 ].min # Cap at 100
       end
 
       def geographic_anomaly_detected?(recent_logins)
@@ -288,7 +297,7 @@ module Beskar
 
         if locker.lock_if_necessary!
           Rails.logger.warn "[Beskar] Account locked due to high risk score: #{security_event.risk_score} (threshold: #{Beskar.configuration.risk_threshold})"
-          
+
           # Sign out the user immediately if using Warden/Devise
           sign_out_after_lock if defined?(Warden)
         end
@@ -297,21 +306,21 @@ module Beskar
       # Determine the specific reason for locking
       def determine_lock_reason(security_event)
         metadata = security_event.metadata || {}
-        
+
         # Check for impossible travel
-        if metadata.dig('geolocation', 'impossible_travel')
+        if metadata.dig("geolocation", "impossible_travel")
           return :impossible_travel
         end
 
         # Check for suspicious device
-        device_info = metadata['device_info'] || {}
-        if device_info['bot_signature'] || device_info['suspicious']
+        device_info = metadata["device_info"] || {}
+        if device_info["bot_signature"] || device_info["suspicious"]
           return :suspicious_device
         end
 
         # Check for geographic anomaly
-        geolocation = metadata['geolocation'] || {}
-        if geolocation['country_change'] || geolocation['high_risk_country']
+        geolocation = metadata["geolocation"] || {}
+        if geolocation["country_change"] || geolocation["high_risk_country"]
           return :geographic_anomaly
         end
 
@@ -339,10 +348,10 @@ module Beskar
         # Look for successful logins from this IP
         # in the past 30 days (configurable timeframe for learning)
         historical_logins = security_events
-          .where(event_type: 'login_success')
+          .where(event_type: "login_success")
           .where(ip_address: current_ip)
-          .where('created_at >= ?', 30.days.ago)
-          .where('created_at < ?', 5.minutes.ago) # Exclude current login
+          .where("created_at >= ?", 30.days.ago)
+          .where("created_at < ?", 5.minutes.ago) # Exclude current login
 
         # Need at least 2 successful logins from this context
         return false if historical_logins.count < 2
@@ -350,17 +359,17 @@ module Beskar
         # Check if there was an unlock event followed by successful logins
         # from this same context - this indicates user legitimized this pattern
         recent_unlock_or_lock = security_events
-          .where(event_type: ['account_locked', 'account_unlocked', 'lock_attempted'])
-          .where('created_at >= ?', 7.days.ago)
+          .where(event_type: [ "account_locked", "account_unlocked", "lock_attempted" ])
+          .where("created_at >= ?", 7.days.ago)
           .order(created_at: :desc)
           .first
 
         if recent_unlock_or_lock
           # Check for successful logins after unlock/lock from same IP
           logins_after_unlock = security_events
-            .where(event_type: 'login_success')
+            .where(event_type: "login_success")
             .where(ip_address: current_ip)
-            .where('created_at > ?', recent_unlock_or_lock.created_at)
+            .where("created_at > ?", recent_unlock_or_lock.created_at)
             .count
 
           # If user unlocked and successfully logged in from same IP/context,
@@ -380,10 +389,10 @@ module Beskar
         return false unless security_events.any?
 
         successful_logins_from_ip = security_events
-          .where(event_type: 'login_success')
+          .where(event_type: "login_success")
           .where(ip_address: ip_address)
-          .where('created_at >= ?', 30.days.ago)
-          .where('created_at < ?', 5.minutes.ago) # Exclude current login
+          .where("created_at >= ?", 30.days.ago)
+          .where("created_at < ?", 5.minutes.ago) # Exclude current login
           .count
 
         # Location is established if there are 2+ successful logins

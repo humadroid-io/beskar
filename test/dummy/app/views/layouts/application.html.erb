@@ -24,11 +24,11 @@
 
   <body>
     <ul>
-      <% unless user_signed_in? %>
-      <li><%= link_to "Sign up", new_user_registration_path %></li>
-      <li><%= link_to "Sign in", new_user_session_path %></li>
+      <% unless devise_user_signed_in? %>
+      <li><%= link_to "Sign up", new_devise_user_registration_path %></li>
+      <li><%= link_to "Sign in", new_devise_user_session_path %></li>
       <% else %>
-        <li><%= button_to "Sign out", destroy_user_session_path, method: :delete %></li>
+        <li><%= button_to "Sign out", destroy_devise_user_session_path, method: :delete %></li>
 
       <% end %>
       <li><%= link_to "Restricted", restricted_path %></li>

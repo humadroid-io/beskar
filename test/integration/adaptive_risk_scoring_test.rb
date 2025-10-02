@@ -3,7 +3,7 @@ require 'ostruct'
 
 class AdaptiveRiskScoringTest < ActionDispatch::IntegrationTest
   setup do
-    @user = User.create!(
+    @user = DeviseUser.create!(
       email: 'adaptive@example.com',
       password: 'password123',
       password_confirmation: 'password123'
@@ -44,7 +44,7 @@ class AdaptiveRiskScoringTest < ActionDispatch::IntegrationTest
       ip: test_ip,
       user_agent: 'Mozilla/5.0',
       session: OpenStruct.new(id: 'test_session'),
-      path: '/users/sign_in',
+      path: '/devise_users/sign_in',
       referer: nil,
       headers: { 'Accept-Language' => 'en', 'X-Forwarded-For' => nil, 'X-Real-IP' => nil }
     )
@@ -255,7 +255,7 @@ class AdaptiveRiskScoringTest < ActionDispatch::IntegrationTest
       ip: test_ip,
       user_agent: 'Mozilla/5.0',
       session: OpenStruct.new(id: 'test'),
-      path: '/users/sign_in',
+      path: '/devise_users/sign_in',
       referer: nil,
       headers: { 'Accept-Language' => 'en', 'X-Forwarded-For' => nil, 'X-Real-IP' => nil }
     )

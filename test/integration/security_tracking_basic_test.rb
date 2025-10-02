@@ -4,7 +4,7 @@ require_relative "../beskar_test_base"
 class SecurityTrackingBasicTest < BeskarTestBase
   def setup
     super
-    @user = create(:user)
+    @user = create(:devise_user)
   end
 
   test "should create security event manually" do
@@ -30,11 +30,11 @@ class SecurityTrackingBasicTest < BeskarTestBase
   test "should track failed login without user" do
     request_mock = mock_suspicious_request(
       ip: "10.0.0.1",
-      params: {"user" => {"email" => "wrong@example.com"}}
+      params: {"devise_user" => {"email" => "wrong@example.com"}}
     )
 
     assert_difference "Beskar::SecurityEvent.count", 1 do
-      User.track_failed_authentication(request_mock, :user)
+      DeviseUser.track_failed_authentication(request_mock, :devise_user)
     end
 
     event = Beskar::SecurityEvent.last
@@ -120,14 +120,14 @@ class SecurityTrackingBasicTest < BeskarTestBase
   end
 
   test "should detect suspicious login patterns" do
-    user = create(:user)
+    user = create(:devise_user)
     simulate_rapid_attempts(user, 3)
 
     assert user.suspicious_login_pattern?
   end
 
   test "should get recent failed attempts" do
-    user_with_failures = create(:user)
+    user_with_failures = create(:devise_user)
 
     # Create some recent failed attempts using helper
     2.times do |i|
@@ -152,7 +152,7 @@ class SecurityTrackingBasicTest < BeskarTestBase
   end
 
   test "should detect attack patterns" do
-    user = create(:user)
+    user = create(:devise_user)
 
     # Create distributed attack pattern (same user, different IPs)
     ["192.168.1.1", "192.168.1.2"].each_with_index do |ip, i|
