@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   devise_for :devise_users
   mount Beskar::Engine => "/beskar"
 
-  get "restricted" => "welcome#restricted"
+  get "devise_restricted" => "welcome#devise_restricted"
+  get "user_restricted" => "welcome#user_restricted"
   root to: "welcome#index"
 end

@@ -6,8 +6,16 @@ class BeskarTestBase < ActiveSupport::TestCase
   self.use_transactional_tests = true
 
   def setup
-    # Initialize Beskar configuration
-    Beskar.configure {}
+    # Reset Beskar configuration to defaults before each test
+    Beskar.configuration = Beskar::Configuration.new
+    
+    # Ensure security tracking is enabled by default for tests
+    Beskar.configuration.security_tracking[:enabled] = true
+    Beskar.configuration.security_tracking[:track_successful_logins] = true
+    Beskar.configuration.security_tracking[:track_failed_logins] = true
+    
+    # Mark that configuration has been reset to prevent duplicate reset in parent
+    @beskar_config_reset = true
 
     # Clear cache before each test
     Rails.cache.clear

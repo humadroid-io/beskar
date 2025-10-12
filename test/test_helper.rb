@@ -29,10 +29,29 @@ class ActiveSupport::TestCase
 
   parallelize_setup do |worker|
     Rails.cache.clear
+    # Reset Beskar configuration for each worker to prevent cross-test contamination
+    Beskar.configuration = Beskar::Configuration.new
+    Beskar.configuration.security_tracking[:enabled] = true
+    Beskar.configuration.security_tracking[:track_successful_logins] = true
+    Beskar.configuration.security_tracking[:track_failed_logins] = true
   end
 
   parallelize_teardown do |worker|
     Rails.cache.clear
+    # Reset configuration after worker finishes
+    Beskar.configuration = Beskar::Configuration.new
+  end
+  
+  # Reset configuration before each test to ensure isolation
+  setup do
+    # Only reset if not already done by a subclass (like BeskarTestBase)
+    unless defined?(@beskar_config_reset)
+      Beskar.configuration = Beskar::Configuration.new
+      Beskar.configuration.security_tracking[:enabled] = true
+      Beskar.configuration.security_tracking[:track_successful_logins] = true
+      Beskar.configuration.security_tracking[:track_failed_logins] = true
+      @beskar_config_reset = true
+    end
   end
 end
 
@@ -43,14 +62,27 @@ class ActionDispatch::IntegrationTest
   # Per-worker setup for integration tests
   parallelize_setup do |worker|
     Rails.cache.clear
+    # Reset Beskar configuration for each worker
+    Beskar.configuration = Beskar::Configuration.new
+    Beskar.configuration.security_tracking[:enabled] = true
+    Beskar.configuration.security_tracking[:track_successful_logins] = true
+    Beskar.configuration.security_tracking[:track_failed_logins] = true
   end
 
   parallelize_teardown do |worker|
     Rails.cache.clear
+    # Reset configuration after worker finishes
+    Beskar.configuration = Beskar::Configuration.new
   end
 
   setup do
     Rails.application.reload_routes_unless_loaded
+    
+    # Reset Beskar configuration before each integration test
+    Beskar.configuration = Beskar::Configuration.new
+    Beskar.configuration.security_tracking[:enabled] = true
+    Beskar.configuration.security_tracking[:track_successful_logins] = true
+    Beskar.configuration.security_tracking[:track_failed_logins] = true
   end
 
   # Helper method to get unique IP addresses per test method

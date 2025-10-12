@@ -1,6 +1,6 @@
 module Beskar
   class Configuration
-    attr_accessor :enable_waf, :waf_ruleset, :rate_limiting, :security_tracking, :risk_based_locking, :geolocation, :ip_whitelist, :waf, :authentication_models
+    attr_accessor :enable_waf, :waf_ruleset, :rate_limiting, :security_tracking, :risk_based_locking, :geolocation, :ip_whitelist, :waf, :authentication_models, :emergency_password_reset
 
     def initialize
       @enable_waf = false # Default to off (deprecated, use @waf[:enabled] instead)
@@ -61,6 +61,15 @@ module Beskar
         provider: :mock,                   # Provider: :maxmind, :mock
         maxmind_city_db_path: nil,         # Path to MaxMind GeoLite2-City.mmdb or GeoIP2-City.mmdb
         cache_ttl: 4.hours                 # How long to cache geolocation results
+      }
+      @emergency_password_reset = {
+        enabled: false,                    # Master switch for emergency password reset
+        impossible_travel_threshold: 3,    # Reset after N impossible travel events in 24h
+        suspicious_device_threshold: 5,    # Reset after N suspicious device events in 24h
+        total_locks_threshold: 5,          # Reset after N total locks in 24h (any reason)
+        send_notification: true,           # Send email to user about reset
+        notify_security_team: true,        # Alert security team about automatic resets
+        require_manual_unlock: false       # Require manual admin unlock after reset
       }
     end
 

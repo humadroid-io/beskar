@@ -29,9 +29,8 @@
       <li><%= link_to "Sign in", new_devise_user_session_path %></li>
       <% else %>
         <li><%= button_to "Sign out", destroy_devise_user_session_path, method: :delete %></li>
-
+        <li><%= link_to "Devise Restricted", devise_restricted_path %></li>
       <% end %>
-      <li><%= link_to "Restricted", restricted_path %></li>
     </ul>
     <%= yield %>
   </body>

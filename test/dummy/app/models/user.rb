@@ -4,6 +4,6 @@ class User < ApplicationRecord
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
-  # Include Beskar security tracking
-  include Beskar::Models::SecurityTrackable
+  # Include Beskar security tracking for Rails 8 authentication
+  include Beskar::Models::SecurityTrackableAuthenticable
 end
