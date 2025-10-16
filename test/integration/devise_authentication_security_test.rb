@@ -178,7 +178,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "accessing protected resource without login redirects to login" do
-    get "/restricted"
+    get "/devise_restricted"
     assert_redirected_to "/devise_users/sign_in"
   end
 
@@ -209,7 +209,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Now access protected resource
-    get "/restricted"
+    get "/devise_restricted"
     assert_response :success
   end
 
@@ -319,7 +319,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path, "Login should succeed (got #{response.status})"
 
     # Test authenticated request
-    get "/restricted"
+    get "/devise_restricted"
     assert_response :success
 
     # Logout
@@ -327,7 +327,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
 
     # Try to access protected resource after logout
-    get "/restricted"
+    get "/devise_restricted"
     assert_redirected_to "/devise_users/sign_in"
   end
 
