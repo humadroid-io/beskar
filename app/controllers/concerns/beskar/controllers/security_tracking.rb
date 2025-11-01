@@ -29,9 +29,9 @@ module Beskar
         return unless Beskar.configuration.track_successful_logins?
 
         user.track_authentication_event(request, :success)
-        Rails.logger.info "[Beskar] Tracked successful authentication for user #{user.id}"
+        Beskar::Logger.info("Tracked successful authentication for user #{user.id}")
       rescue => e
-        Rails.logger.error "[Beskar] Failed to track authentication success: #{e.message}"
+        Beskar::Logger.error("Failed to track authentication success: #{e.message}")
       end
 
       # Track failed authentication attempt
@@ -40,9 +40,9 @@ module Beskar
         return unless Beskar.configuration.track_failed_logins?
 
         model_class.track_failed_authentication(request, scope)
-        Rails.logger.info "[Beskar] Tracked failed authentication for scope #{scope}"
+        Beskar::Logger.info("Tracked failed authentication for scope #{scope}")
       rescue => e
-        Rails.logger.error "[Beskar] Failed to track authentication failure: #{e.message}"
+        Beskar::Logger.error("Failed to track authentication failure: #{e.message}")
       end
 
       # Track logout event
@@ -61,9 +61,9 @@ module Beskar
           },
           risk_score: 0
         )
-        Rails.logger.info "[Beskar] Tracked logout for user #{user.id}"
+        Beskar::Logger.info("Tracked logout for user #{user.id}")
       rescue => e
-        Rails.logger.error "[Beskar] Failed to track logout: #{e.message}"
+        Beskar::Logger.error("Failed to track logout: #{e.message}")
       end
     end
   end

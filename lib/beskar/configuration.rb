@@ -180,7 +180,7 @@ module Beskar
           end
         rescue => e
           # Ignore errors during detection
-          Rails.logger.debug "[Beskar] Error detecting Rails auth model #{model.name}: #{e.message}"
+          Beskar::Logger.debug("Error detecting Rails auth model #{model.name}: #{e.message}")
         end
       end
 

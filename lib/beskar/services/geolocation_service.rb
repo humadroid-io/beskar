@@ -122,14 +122,14 @@ module Beskar
           db_path = Beskar.configuration.maxmind_city_db_path
           if File.exist?(db_path)
             @city_reader = MaxMindDB.new(db_path)
-            Rails.logger.info "[Beskar::GeolocationService] MaxMind City database loaded from #{db_path}"
+            Beskar::Logger.info("MaxMind City database loaded from #{db_path}", component: :GeolocationService)
           else
-            Rails.logger.warn "[Beskar::GeolocationService] MaxMind City database not found at #{db_path}"
+            Beskar::Logger.warn("MaxMind City database not found at #{db_path}", component: :GeolocationService)
           end
           @city_reader
         end
       rescue => e
-        Rails.logger.error "[Beskar::GeolocationService] Failed to load MaxMind City database: #{e.message}"
+        Beskar::Logger.error("Failed to load MaxMind City database: #{e.message}", component: :GeolocationService)
         nil
       end
 
@@ -178,7 +178,7 @@ module Beskar
 
         result
       rescue => e
-        Rails.logger.warn "[Beskar::GeolocationService] Failed to locate IP #{ip_address}: #{e.message}"
+        Beskar::Logger.warn("Failed to locate IP #{ip_address}: #{e.message}", component: :GeolocationService)
         unknown_location(ip_address)
       end
 
@@ -339,7 +339,7 @@ module Beskar
               result.merge!(unknown_location(ip_address).except(:ip, :provider, :private_ip))
             end
           rescue => e
-            Rails.logger.warn "[Beskar::GeolocationService] MaxMind City lookup failed for #{ip_address}: #{e.message}"
+            Beskar::Logger.warn("MaxMind City lookup failed for #{ip_address}: #{e.message}", component: :GeolocationService)
             result.merge!(unknown_location(ip_address).except(:ip, :provider, :private_ip))
           end
         else
@@ -349,7 +349,7 @@ module Beskar
 
         result
       rescue => e
-        Rails.logger.error "[Beskar::GeolocationService] MaxMind lookup failed for #{ip_address}: #{e.message}"
+        Beskar::Logger.error("MaxMind lookup failed for #{ip_address}: #{e.message}", component: :GeolocationService)
         unknown_location(ip_address)
       end
 
@@ -373,7 +373,7 @@ module Beskar
         cache_key = "#{@cache_key_prefix}:#{ip_address}"
         Rails.cache.read(cache_key)
       rescue => e
-        Rails.logger.debug "[Beskar::GeolocationService] Cache read failed: #{e.message}"
+        Beskar::Logger.debug("Cache read failed: #{e.message}", component: :GeolocationService)
         nil
       end
 
@@ -385,7 +385,7 @@ module Beskar
         cache_key = "#{@cache_key_prefix}:#{ip_address}"
         Rails.cache.write(cache_key, result, expires_in: @cache_ttl)
       rescue => e
-        Rails.logger.debug "[Beskar::GeolocationService] Cache write failed: #{e.message}"
+        Beskar::Logger.debug("Cache write failed: #{e.message}", component: :GeolocationService)
       end
     end
   end

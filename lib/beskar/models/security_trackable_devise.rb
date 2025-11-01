@@ -21,7 +21,7 @@ module Beskar
       def track_successful_login
         # Skip tracking if disabled in configuration
         unless Beskar.configuration.track_successful_logins?
-          Rails.logger.debug "[Beskar] Successful login tracking disabled in configuration"
+          Beskar::Logger.debug("Successful login tracking disabled in configuration")
           return
         end
 
@@ -29,7 +29,7 @@ module Beskar
           track_authentication_event(current_request, :success)
         end
       rescue => e
-        Rails.logger.warn "[Beskar] Failed to track successful login: #{e.message}"
+        Beskar::Logger.warn("Failed to track successful login: #{e.message}")
         nil
       end
 
@@ -45,7 +45,7 @@ module Beskar
           .exists?
 
         if recent_lock
-          Rails.logger.warn "[Beskar] High-risk lock detected, signing out user #{id}"
+          Beskar::Logger.warn("High-risk lock detected, signing out user #{id}")
           auth.logout
           throw :warden, message: :account_locked_due_to_high_risk
         end
@@ -66,14 +66,14 @@ module Beskar
           Warden::Manager.current_request
         end
       rescue => e
-        Rails.logger.debug "[Beskar] Could not get request from context: #{e.message}"
+        Beskar::Logger.debug("Could not get request from context: #{e.message}")
         nil
       end
 
       # Devise-specific: Handle high risk lock by creating lock event
       # The actual sign-out is handled by Warden callback in engine.rb
       def handle_high_risk_lock(security_event, request)
-        Rails.logger.debug "[Beskar] Devise account locked - Warden callback will handle sign-out"
+        Beskar::Logger.debug("Devise account locked - Warden callback will handle sign-out")
         # The lock event is already created by AccountLocker service
         # The Warden callback will detect it and perform the actual sign-out
       end

@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2024-12-20
-
 ### ⚠️ BREAKING CHANGES
 
 - **Monitor-only mode refactored to top-level configuration**
@@ -25,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Allows querying `Beskar::BannedIp.active` to see potential blocks
   - Makes verification and testing much more reliable
 - Global monitor-only mode affecting all blocking features (WAF, rate limiting, IP bans)
+- **Centralized logging system** (`Beskar::Logger`)
+  - Consistent log formatting with automatic `[Beskar]` or `[Beskar::Component]` prefixes
+  - Component name aliasing for cleaner output (e.g., `Beskar::Services::Waf` → `WAF`)
+  - Configurable log levels and output backends
+  - Include module support for automatic component detection in classes
+  - Single point of configuration for all logging
 
 ### Changed
 
@@ -34,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All blocking decisions (WAF, rate limiting, authentication abuse) respect global monitor-only setting
 - Improved logging with clear "MONITOR-ONLY" indicators
 - Better separation of ban creation from ban enforcement
+- All internal logging now uses `Beskar::Logger` instead of direct `Rails.logger` calls
+- Log messages no longer require manual prefix formatting
 
 ### Fixed
 
@@ -72,5 +78,4 @@ When upgrading between versions with breaking changes:
 
 ---
 
-[Unreleased]: https://github.com/humadroid-io/beskar/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/humadroid-io/beskar/compare/v0.0.2...v0.1.0
+[Unreleased]: https://github.com/humadroid-io/beskar/compare/v0.0.2...HEAD

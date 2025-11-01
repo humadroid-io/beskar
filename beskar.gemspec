@@ -32,7 +32,7 @@ Built as a mountable Rails Engine, it leverages core framework features like Act
 
   spec.add_development_dependency "debug"
   spec.add_development_dependency "devise"
-  spec.add_development_dependency "ostruct"
   spec.add_development_dependency "factory_bot_rails"
   spec.add_development_dependency "mocha"
+  spec.add_development_dependency "ostruct"
 end

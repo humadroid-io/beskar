@@ -22,7 +22,7 @@ module Beskar
       def handle_high_risk_lock(security_event, request)
         reason = determine_lock_reason(security_event)
         
-        Rails.logger.warn "[Beskar] Rails auth high-risk lock detected: #{reason}"
+        Beskar::Logger.warn("Rails auth high-risk lock detected: #{reason}")
         
         # Destroy all sessions to immediately lock out attacker
         destroy_all_sessions(except: request.session.id)
@@ -39,18 +39,18 @@ module Beskar
           if except
             # Keep current session but destroy all others
             sessions.where.not(id: except).destroy_all
-            Rails.logger.info "[Beskar] Destroyed #{sessions.count} sessions except current"
+            Beskar::Logger.info("Destroyed #{sessions.count} sessions except current")
           else
             # Destroy ALL sessions including current
             count = sessions.count
             sessions.destroy_all
-            Rails.logger.info "[Beskar] Destroyed all #{count} sessions"
+            Beskar::Logger.info("Destroyed all #{count} sessions")
           end
         else
-          Rails.logger.warn "[Beskar] Model does not have sessions association, cannot destroy sessions"
+          Beskar::Logger.warn("Model does not have sessions association, cannot destroy sessions")
         end
       rescue => e
-        Rails.logger.error "[Beskar] Failed to destroy sessions: #{e.message}"
+        Beskar::Logger.error("Failed to destroy sessions: #{e.message}")
       end
 
       # Determine if emergency password reset is warranted
@@ -125,10 +125,10 @@ module Beskar
             notify_security_team_of_reset(reason, security_event)
           end
           
-          Rails.logger.warn "[Beskar] Emergency password reset performed for user #{id}, reason: #{reason}"
+          Beskar::Logger.warn("Emergency password reset performed for user #{id}, reason: #{reason}")
           
         rescue => e
-          Rails.logger.error "[Beskar] Failed to perform emergency password reset: #{e.message}"
+          Beskar::Logger.error("Failed to perform emergency password reset: #{e.message}")
           
           # Create failed reset event
           security_events.create!(
@@ -149,18 +149,18 @@ module Beskar
       def send_emergency_reset_notification(reason)
         # This should be implemented by the application
         # Example: UserMailer.emergency_password_reset(self, reason).deliver_later
-        Rails.logger.info "[Beskar] Would send emergency reset notification to user #{id}"
+        Beskar::Logger.info("Would send emergency reset notification to user #{id}")
       rescue => e
-        Rails.logger.error "[Beskar] Failed to send emergency reset notification: #{e.message}"
+        Beskar::Logger.error("Failed to send emergency reset notification: #{e.message}")
       end
 
       # Notify security team about emergency password reset
       def notify_security_team_of_reset(reason, security_event)
         # This should be implemented by the application
         # Example: SecurityMailer.emergency_reset_alert(self, reason, security_event).deliver_later
-        Rails.logger.info "[Beskar] Would notify security team about reset for user #{id}"
+        Beskar::Logger.info("Would notify security team about reset for user #{id}")
       rescue => e
-        Rails.logger.error "[Beskar] Failed to notify security team: #{e.message}"
+        Beskar::Logger.error("Failed to notify security team: #{e.message}")
       end
     end
   end

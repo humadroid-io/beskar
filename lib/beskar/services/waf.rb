@@ -220,14 +220,12 @@ module Beskar
           config = waf_config
           monitor_mode_notice = Beskar.configuration.monitor_only? ? " [MONITOR-ONLY MODE]" : ""
 
-          Rails.logger.warn(
-            "[Beskar::WAF] #{emoji} Vulnerability scan detected#{monitor_mode_notice} " \
+          Beskar::Logger.warn("#{emoji} Vulnerability scan detected#{monitor_mode_notice} " \
             "(#{violation_count} violations) - " \
             "IP: #{ip_address}, " \
             "Severity: #{analysis_result[:highest_severity]}, " \
             "Patterns: #{analysis_result[:patterns].map { |p| p[:description] }.join(', ')}, " \
-            "Path: #{analysis_result[:patterns].first[:matched_path]}"
-          )
+            "Path: #{analysis_result[:patterns].first[:matched_path]}", component: :WAF)
         end
 
         # Log what would happen in monitor-only mode (but don't actually block)
@@ -235,14 +233,12 @@ module Beskar
           config = waf_config
           duration = calculate_block_duration(violation_count, config)
 
-          Rails.logger.warn(
-            "[Beskar::WAF] 🔍 MONITOR-ONLY: IP #{ip_address} WOULD BE BLOCKED " \
+          Beskar::Logger.warn("🔍 MONITOR-ONLY: IP #{ip_address} WOULD BE BLOCKED " \
             "(threshold reached: #{violation_count}/#{threshold} violations) - " \
             "Duration would be: #{duration ? "#{duration / 3600.0} hours" : 'PERMANENT'}, " \
             "Severity: #{analysis_result[:highest_severity]}, " \
             "Patterns: #{analysis_result[:patterns].map { |p| p[:description] }.join(', ')}. " \
-            "To enable blocking, set config.monitor_only = false"
-          )
+            "To enable blocking, set config.monitor_only = false", component: :WAF)
         end
 
         # Create security event for WAF violation
@@ -268,7 +264,7 @@ module Beskar
             }
           )
         rescue => e
-          Rails.logger.error "[Beskar::WAF] Failed to create security event: #{e.message}"
+          Beskar::Logger.error("Failed to create security event: #{e.message}", component: :WAF)
         end
 
         # Auto-block an IP after threshold violations
@@ -290,11 +286,9 @@ module Beskar
             }
           )
 
-          Rails.logger.warn(
-            "[Beskar::WAF] 🔒 Auto-blocked IP #{ip_address} " \
+          Beskar::Logger.warn("🔒 Auto-blocked IP #{ip_address} " \
             "after #{violation_count} violations " \
-            "(duration: #{duration ? "#{duration / 3600} hours" : 'permanent'})"
-          )
+            "(duration: #{duration ? "#{duration / 3600} hours" : 'permanent'})", component: :WAF)
         end
 
         # Calculate block duration based on violation count

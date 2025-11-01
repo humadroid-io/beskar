@@ -16,7 +16,7 @@ module Beskar
         def track_failed_authentication(request, scope)
           # Skip tracking if disabled in configuration
           unless Beskar.configuration.track_failed_logins?
-            Rails.logger.debug "[Beskar] Failed login tracking disabled in configuration"
+            Beskar::Logger.debug("Failed login tracking disabled in configuration")
             return
           end
 
@@ -77,14 +77,14 @@ module Beskar
           
           if password&.length.to_i > 50
             score += 10
-            Rails.logger.info "[Beskar] Suspicious password length: #{password.length}, adding 10 risk"
+            Beskar::Logger.info("Suspicious password length: #{password.length}, adding 10 risk")
           end
 
           # Use geolocation service for location-based risk
           geolocation_service = Beskar::Services::GeolocationService.new
           geo_score = geolocation_service.calculate_location_risk(request.ip)
           score += geo_score
-          Rails.logger.info "[Beskar] Geolocation risk: #{geo_score}"
+          Beskar::Logger.info("Geolocation risk: #{geo_score}")
 
           [score, 100].min # Cap at 100
         end
@@ -96,10 +96,10 @@ module Beskar
 
         # Check if tracking is enabled for this event type
         if result == :success && !Beskar.configuration.track_successful_logins?
-          Rails.logger.debug "[Beskar] Successful login tracking disabled in configuration"
+          Beskar::Logger.debug("Successful login tracking disabled in configuration")
           return
         elsif result == :failure && !Beskar.configuration.track_failed_logins?
-          Rails.logger.debug "[Beskar] Failed login tracking disabled in configuration"
+          Beskar::Logger.debug("Failed login tracking disabled in configuration")
           return
         end
 
@@ -134,14 +134,14 @@ module Beskar
       def analyze_suspicious_patterns_async
         # Skip analysis if disabled in configuration
         unless Beskar.configuration.auto_analyze_patterns?
-          Rails.logger.debug "[Beskar] Auto pattern analysis disabled in configuration"
+          Beskar::Logger.debug("Auto pattern analysis disabled in configuration")
           return
         end
 
         # Queue background job for detailed analysis
         Beskar::SecurityAnalysisJob.perform_later(self.id, "login_success") if defined?(Beskar::SecurityAnalysisJob)
       rescue => e
-        Rails.logger.warn "[Beskar] Failed to queue security analysis: #{e.message}"
+        Beskar::Logger.warn("Failed to queue security analysis: #{e.message}")
       end
 
       def recent_failed_attempts(within: 1.hour)
@@ -202,18 +202,18 @@ module Beskar
         # Mobile device login during late hours
         if device_detector.mobile?(request.user_agent) && Time.current.hour.between?(22, 6)
           score += 5
-          Rails.logger.info "[Beskar] Mobile device login during late hours, adding 5 risk"
+          Beskar::Logger.info("Mobile device login during late hours, adding 5 risk")
         end
 
         # Account-specific risk factors
         if recent_failed_attempts(within: 10.minutes).count >= 2
           score += 20
-          Rails.logger.info "[Beskar] Recent failed attempts: #{recent_failed_attempts(within: 10.minutes).count}, adding 20 risk"
+          Beskar::Logger.info("Recent failed attempts: #{recent_failed_attempts(within: 10.minutes).count}, adding 20 risk")
         end
 
         # ADAPTIVE LEARNING: Check if this is an established pattern
         if result == :success && established_pattern?(request)
-          Rails.logger.info "[Beskar] Established pattern detected, reducing risk score"
+          Beskar::Logger.info("Established pattern detected, reducing risk score")
           score = [score * 0.3, 25].min.to_i # Reduce to 30% of original, cap at 25
         end
 
@@ -260,7 +260,7 @@ module Beskar
         )
 
         if locker.lock_if_necessary!
-          Rails.logger.warn "[Beskar] Account locked due to high risk score: #{security_event.risk_score}"
+          Beskar::Logger.warn("Account locked due to high risk score: #{security_event.risk_score}")
           
           # Trigger auth-system-specific lock handling
           handle_high_risk_lock(security_event, request)
@@ -294,7 +294,7 @@ module Beskar
 
       # Override this in auth-system-specific modules
       def handle_high_risk_lock(security_event, request)
-        Rails.logger.debug "[Beskar] High risk lock handled - override in specific module"
+        Beskar::Logger.debug("High risk lock handled - override in specific module")
       end
 
       # ADAPTIVE LEARNING: Check if this login pattern is established

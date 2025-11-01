@@ -15,9 +15,9 @@ module Beskar
         # 2. Check if IP is banned (early exit for blocked IPs, unless whitelisted or in monitor-only mode)
         if !is_whitelisted && Beskar::BannedIp.banned?(ip_address)
           if Beskar.configuration.monitor_only?
-            Rails.logger.warn "[Beskar::Middleware] 🔍 MONITOR-ONLY: Would block request from banned IP: #{ip_address}, but monitor_only=true. Request proceeding normally."
+            Beskar::Logger.warn("🔍 MONITOR-ONLY: Would block request from banned IP: #{ip_address}, but monitor_only=true. Request proceeding normally.", component: :Middleware)
           else
-            Rails.logger.warn "[Beskar::Middleware] Blocked request from banned IP: #{ip_address}"
+            Beskar::Logger.warn("Blocked request from banned IP: #{ip_address}", component: :Middleware)
             return blocked_response("Your IP address has been blocked due to suspicious activity.")
           end
         end
@@ -35,9 +35,9 @@ module Beskar
           end
 
           if Beskar.configuration.monitor_only?
-            Rails.logger.warn "[Beskar::Middleware] 🔍 MONITOR-ONLY: Would block rate limit exceeded for IP: #{ip_address}, but monitor_only=true. Request proceeding normally."
+            Beskar::Logger.warn("🔍 MONITOR-ONLY: Would block rate limit exceeded for IP: #{ip_address}, but monitor_only=true. Request proceeding normally.", component: :Middleware)
           else
-            Rails.logger.warn "[Beskar::Middleware] Rate limit exceeded for IP: #{ip_address}"
+            Beskar::Logger.warn("Rate limit exceeded for IP: #{ip_address}", component: :Middleware)
             return rate_limit_response
           end
         end
@@ -53,10 +53,8 @@ module Beskar
 
             # Log even for whitelisted IPs (but don't block)
             if is_whitelisted
-              Rails.logger.info(
-                "[Beskar::Middleware] WAF violation from whitelisted IP #{ip_address} " \
-                "(not blocking): #{waf_analysis[:patterns].map { |p| p[:description] }.join(', ')}"
-              )
+              Beskar::Logger.info("WAF violation from whitelisted IP #{ip_address} " \
+                "(not blocking): #{waf_analysis[:patterns].map { |p| p[:description] }.join(', ')}", component: :Middleware)
             else
               # Check if we should block
               should_block = Beskar::Services::Waf.should_block?(ip_address)
@@ -64,18 +62,14 @@ module Beskar
               if Beskar.configuration.monitor_only?
                 # Monitor-only mode: Just log, don't block (but ban record was created by WAF.record_violation)
                 if should_block
-                  Rails.logger.warn(
-                    "[Beskar::Middleware] 🔍 MONITOR-ONLY: Would block IP #{ip_address} " \
+                  Beskar::Logger.warn("🔍 MONITOR-ONLY: Would block IP #{ip_address} " \
                     "after #{violation_count} WAF violations, but monitor_only=true. " \
-                    "Request proceeding normally."
-                  )
+                    "Request proceeding normally.", component: :Middleware)
                 end
               elsif should_block && !Beskar.configuration.monitor_only?
                 # Actually block the request (not in monitor-only mode)
-                Rails.logger.warn(
-                  "[Beskar::Middleware] 🔒 Blocking IP #{ip_address} " \
-                  "after #{violation_count} WAF violations"
-                )
+                Beskar::Logger.warn("🔒 Blocking IP #{ip_address} " \
+                  "after #{violation_count} WAF violations", component: :Middleware)
                 # Block already handled by WAF.record_violation auto-block logic
                 # But we return 403 immediately
                 return blocked_response("Access denied due to suspicious activity.")
@@ -144,15 +138,11 @@ module Beskar
           )
 
           if Beskar.configuration.monitor_only?
-            Rails.logger.warn(
-              "[Beskar::Middleware] 🔍 MONITOR-ONLY: Would auto-block IP #{ip_address} " \
-              "for authentication brute force (#{recent_failures.length} failures), but monitor_only=true"
-            )
+            Beskar::Logger.warn("🔍 MONITOR-ONLY: Would auto-block IP #{ip_address} " \
+              "for authentication brute force (#{recent_failures.length} failures), but monitor_only=true", component: :Middleware)
           else
-            Rails.logger.warn(
-              "[Beskar::Middleware] 🔒 Auto-blocked IP #{ip_address} " \
-              "for authentication brute force (#{recent_failures.length} failures)"
-            )
+            Beskar::Logger.warn("🔒 Auto-blocked IP #{ip_address} " \
+              "for authentication brute force (#{recent_failures.length} failures)", component: :Middleware)
           end
 
           return true
@@ -169,10 +159,8 @@ module Beskar
         waf_analysis = Beskar::Services::Waf.analyze_request(request)
 
         if waf_analysis
-          Rails.logger.info(
-            "[Beskar::Middleware] 404 on suspicious path from #{request.ip}: #{path} " \
-            "(WAF patterns: #{waf_analysis[:patterns].map { |p| p[:description] }.join(', ')})"
-          )
+          Beskar::Logger.info("404 on suspicious path from #{request.ip}: #{path} " \
+            "(WAF patterns: #{waf_analysis[:patterns].map { |p| p[:description] }.join(', ')})", component: :Middleware)
         end
       end
 

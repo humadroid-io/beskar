@@ -1,5 +1,6 @@
 require "beskar/version"
 require "beskar/configuration"
+require "beskar/logger"
 require "beskar/middleware"
 require "beskar/middleware/request_analyzer"
 require "beskar/models/security_trackable_generic"

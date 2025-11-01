@@ -66,7 +66,7 @@ module Beskar
         when :custom
           lock_with_custom_strategy
         else
-          Rails.logger.warn "[Beskar::AccountLocker] Unknown lock strategy: #{strategy}"
+          Beskar::Logger.warn("Unknown lock strategy: #{strategy}", component: :AccountLocker)
           false
         end
 
@@ -133,7 +133,7 @@ module Beskar
       # Lock account using Devise's lockable module
       def lock_with_devise_lockable
         unless devise_lockable_available?
-          Rails.logger.warn "[Beskar::AccountLocker] Devise lockable not available for #{user.class.name}"
+          Beskar::Logger.warn("Devise lockable not available for #{user.class.name}", component: :AccountLocker)
           return false
         end
 
@@ -146,10 +146,10 @@ module Beskar
             user.update_column(:locked_at, Time.current)
           end
 
-          Rails.logger.info "[Beskar::AccountLocker] Locked account #{user.id} (#{user.class.name}) - Risk: #{risk_score}, Reason: #{reason}"
+          Beskar::Logger.info("Locked account #{user.id} (#{user.class.name}) - Risk: #{risk_score}, Reason: #{reason}", component: :AccountLocker)
           true
         rescue => e
-          Rails.logger.error "[Beskar::AccountLocker] Failed to lock account: #{e.message}"
+          Beskar::Logger.error("Failed to lock account: #{e.message}", component: :AccountLocker)
           false
         end
       end
@@ -157,16 +157,16 @@ module Beskar
       # Unlock account using Devise's lockable module
       def unlock_with_devise_lockable
         unless devise_lockable_available?
-          Rails.logger.warn "[Beskar::AccountLocker] Devise lockable not available for #{user.class.name}"
+          Beskar::Logger.warn("Devise lockable not available for #{user.class.name}", component: :AccountLocker)
           return false
         end
 
         begin
           user.unlock_access!
-          Rails.logger.info "[Beskar::AccountLocker] Unlocked account #{user.id} (#{user.class.name})"
+          Beskar::Logger.info("Unlocked account #{user.id} (#{user.class.name})", component: :AccountLocker)
           true
         rescue => e
-          Rails.logger.error "[Beskar::AccountLocker] Failed to unlock account: #{e.message}"
+          Beskar::Logger.error("Failed to unlock account: #{e.message}", component: :AccountLocker)
           false
         end
       end
@@ -178,13 +178,13 @@ module Beskar
         # 2. Checking this in authentication callbacks
         # 3. Implementing unlock logic
 
-        Rails.logger.warn "[Beskar::AccountLocker] Custom lock strategy not implemented"
+        Beskar::Logger.warn("Custom lock strategy not implemented", component: :AccountLocker)
         false
       end
 
       # Unlock using custom strategy
       def unlock_with_custom_strategy
-        Rails.logger.warn "[Beskar::AccountLocker] Custom unlock strategy not implemented"
+        Beskar::Logger.warn("Custom unlock strategy not implemented", component: :AccountLocker)
         false
       end
 
@@ -220,7 +220,7 @@ module Beskar
             }
           )
         rescue => e
-          Rails.logger.warn "[Beskar::AccountLocker] Failed to log lock event: #{e.message}"
+          Beskar::Logger.warn("Failed to log lock event: #{e.message}", component: :AccountLocker)
         end
       end
 
@@ -243,7 +243,7 @@ module Beskar
             }
           )
         rescue => e
-          Rails.logger.warn "[Beskar::AccountLocker] Failed to log unlock event: #{e.message}"
+          Beskar::Logger.warn("Failed to log unlock event: #{e.message}", component: :AccountLocker)
         end
       end
 
@@ -251,7 +251,7 @@ module Beskar
       def notify_user
         # This would integrate with ActionMailer or notification system
         # For now, just log it
-        Rails.logger.info "[Beskar::AccountLocker] User #{user.id} should be notified of account lock"
+        Beskar::Logger.info("User #{user.id} should be notified of account lock", component: :AccountLocker)
         
         # Future implementation:
         # if defined?(Beskar::AccountLockMailer)

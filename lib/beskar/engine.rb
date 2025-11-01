@@ -11,9 +11,9 @@ module Beskar
       if defined?(Beskar::BannedIp)
         Rails.application.executor.wrap do
           Beskar::BannedIp.preload_cache!
-          Rails.logger.info "[Beskar] Preloaded banned IPs into cache"
+          Beskar::Logger.info("Preloaded banned IPs into cache")
         rescue => e
-          Rails.logger.warn "[Beskar] Failed to preload banned IPs: #{e.message}"
+          Beskar::Logger.warn("Failed to preload banned IPs: #{e.message}")
         end
       end
     end
@@ -35,7 +35,7 @@ module Beskar
                security_event &&
                user_was_just_locked?(user, security_event) &&
                user.respond_to?(:access_locked?) && user.access_locked?
-              Rails.logger.warn "[Beskar] Signing out user #{user.id} due to high-risk lock"
+              Beskar::Logger.warn("Signing out user #{user.id} due to high-risk lock")
               auth.logout
               throw :warden, scope: opts[:scope], message: :account_locked_due_to_high_risk
             end
@@ -61,7 +61,7 @@ module Beskar
             if model_class && model_class.respond_to?(:track_failed_authentication)
               model_class.track_failed_authentication(request, scope)
             else
-              Rails.logger.debug "[Beskar] No trackable model found for scope: #{scope}"
+              Beskar::Logger.debug("No trackable model found for scope: #{scope}")
             end
           end
         end

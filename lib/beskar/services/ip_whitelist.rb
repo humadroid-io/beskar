@@ -16,7 +16,7 @@ module Beskar
             match_entry?(ip, entry)
           end
         rescue IPAddr::InvalidAddressError, ArgumentError => e
-          Rails.logger.warn "[Beskar::IpWhitelist] Invalid IP address: #{ip_address} - #{e.message}"
+          Beskar::Logger.warn("Invalid IP address: #{ip_address} - #{e.message}", component: :IpWhitelist)
           false
         end
 
@@ -98,7 +98,7 @@ module Beskar
               begin
                 entries[entry] = parse_entry(entry)
               rescue IPAddr::InvalidAddressError, ArgumentError => e
-                Rails.logger.warn "[Beskar::IpWhitelist] Skipping invalid entry: #{entry} - #{e.message}"
+                Beskar::Logger.warn("Skipping invalid entry: #{entry} - #{e.message}", component: :IpWhitelist)
               end
             end
             entries
