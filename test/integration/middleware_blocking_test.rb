@@ -136,7 +136,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   test "WAF violations are logged but not blocked in monitor mode" do
     ip = worker_ip(21)
     Beskar.configuration.waf[:enabled] = true
-    Beskar.configuration.waf[:monitor_only] = true
+    Beskar.configuration.monitor_only = true
     Beskar.configuration.waf[:block_threshold] = 1
 
     # Make multiple WAF violations
@@ -144,8 +144,12 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
       get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
     end
 
-    # Should not be blocked in monitor mode
-    assert_not Beskar::BannedIp.banned?(ip)
+    # Ban record should be created even in monitor mode
+    assert Beskar::BannedIp.banned?(ip), "Ban record should exist in monitor mode"
+
+    # But requests should still succeed (not blocked)
+    get "/", headers: { "X-Forwarded-For" => ip }
+    assert_response :success, "Request should succeed in monitor mode despite ban"
 
     # But violations should be logged
     assert Beskar::Services::Waf.get_violation_count(ip) > 0

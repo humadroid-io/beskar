@@ -7,9 +7,11 @@ Beskar.configure do |config|
   # Detects and logs vulnerability scanning attempts (WordPress, phpMyAdmin, etc.)
   # Start in monitor-only mode to observe patterns before enabling blocking.
   #
+  # MONITOR-ONLY MODE - Set at the top level (affects all blocking features)
+  config.monitor_only = true               # LOG ONLY - does not block (recommended to start)
+
   config.waf = {
     enabled: true,                        # Master switch for WAF
-    monitor_only: true,                   # LOG ONLY - does not block (recommended to start)
     auto_block: true,                     # Auto-block IPs after threshold (when monitor_only=false)
     block_threshold: 3,                   # Number of violations before blocking
     violation_window: 1.hour,             # Time window for counting violations
@@ -17,13 +19,13 @@ Beskar.configure do |config|
     permanent_block_after: 5,             # Permanent ban after N violations (nil = never)
     create_security_events: true          # Log violations to SecurityEvent table
   }
-  
+
   # After monitoring for 24-48 hours, review logs and disable monitor_only:
-  # config.waf[:monitor_only] = false
-  
+  # config.monitor_only = false
+
   # View WAF activity in logs:
   # tail -f log/production.log | grep "Beskar::WAF"
-  
+
   # Query violations that would be blocked:
   # Beskar::SecurityEvent.where(event_type: 'waf_violation')
   #   .where("metadata->>'would_be_blocked' = ?", 'true').count

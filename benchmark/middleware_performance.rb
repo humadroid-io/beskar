@@ -31,12 +31,12 @@ waf_request = OpenStruct.new(
 )
 
 # Configure Beskar for testing
+# Configure Beskar
 Beskar.configure do |config|
-  config.ip_whitelist = ["192.168.1.100", "10.0.0.0/24"]
+  config.monitor_only = true # Don't actually block during benchmark
   config.waf = {
     enabled: true,
-    auto_block: false, # Don't actually block during benchmark
-    monitor_only: true
+    auto_block: false
   }
 end
 
@@ -123,25 +123,25 @@ puts "-" * 80
 # Simulate full middleware execution flow
 def simulate_middleware_check(request)
   ip = request.ip
-  
+
   # 1. Whitelist check
   is_whitelisted = Beskar::Services::IpWhitelist.whitelisted?(ip)
-  
+
   # 2. Banned IP check (skip if whitelisted)
   return :blocked if !is_whitelisted && Beskar::BannedIp.banned?(ip)
-  
+
   # 3. Rate limit check (skip if whitelisted)
   if !is_whitelisted
     rate_result = Beskar::Services::RateLimiter.check_ip_rate_limit(ip)
     return :rate_limited unless rate_result[:allowed]
   end
-  
+
   # 4. WAF check
   if Beskar.configuration.waf_enabled?
     waf_result = Beskar::Services::Waf.analyze_request(request)
     # Would normally record violation here, but skip for benchmark
   end
-  
+
   :allowed
 end
 
@@ -190,15 +190,15 @@ puts "-" * 80
 [1, 10, 50, 100, 500].each do |size|
   # Generate whitelist of varying sizes
   whitelist = (1..size).map { |i| "192.168.#{i / 255}.#{i % 255}" }
-  
+
   # Override whitelist configuration
   Beskar.configuration.ip_whitelist = whitelist
   Beskar::Services::IpWhitelist.clear_cache!
-  
+
   time = Benchmark.measure do
     1000.times { Beskar::Services::IpWhitelist.whitelisted?(test_ip) }
   end
-  
+
   avg_ms = (time.real * 1000) / 1000
   puts "Whitelist size %4d: %.4f ms/check" % [size, avg_ms]
 end
@@ -239,14 +239,14 @@ puts
 measurements.each do |name, time|
   avg_ms = (time.real * 1000) / 10_000
   total_ms += avg_ms
-  
+
   label = case name
   when :whitelist then "1. Whitelist check"
   when :banned_ip then "2. Banned IP check"
   when :rate_limit then "3. Rate limit check"
   when :waf then "4. WAF analysis"
   end
-  
+
   puts "  %-22s ~%.2f ms" % [label + ":", avg_ms]
 end
 

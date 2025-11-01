@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    beskar (0.0.1)
+    beskar (0.0.2)
       maxminddb (~> 0.1)
       rails (>= 8.0.0)
 
@@ -145,6 +145,8 @@ GEM
     nio4r (2.7.4)
     nokogiri (1.18.10-arm64-darwin)
       racc (~> 1.4)
+    nokogiri (1.18.10-x86_64-linux-gnu)
+      racc (~> 1.4)
     orm_adapter (0.5.0)
     ostruct (0.6.3)
     parallel (1.27.0)
@@ -245,6 +247,7 @@ GEM
     ruby2_keywords (0.0.5)
     securerandom (0.4.1)
     sqlite3 (2.7.4-arm64-darwin)
+    sqlite3 (2.7.4-x86_64-linux-gnu)
     stringio (3.1.7)
     thor (1.4.0)
     timeout (0.4.3)
@@ -265,6 +268,7 @@ GEM
 
 PLATFORMS
   arm64-darwin
+  x86_64-linux
 
 DEPENDENCIES
   bcrypt (~> 3.1.7)

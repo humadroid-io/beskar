@@ -1,8 +1,9 @@
 module Beskar
   class Configuration
-    attr_accessor :rate_limiting, :security_tracking, :risk_based_locking, :geolocation, :ip_whitelist, :waf, :authentication_models, :emergency_password_reset
+    attr_accessor :rate_limiting, :security_tracking, :risk_based_locking, :geolocation, :ip_whitelist, :waf, :authentication_models, :emergency_password_reset, :monitor_only
 
     def initialize
+      @monitor_only = false # Global monitor-only mode - logs everything but doesn't block
       @ip_whitelist = [] # Array of IP addresses or CIDR ranges
 
       # Authentication models configuration
@@ -20,8 +21,7 @@ module Beskar
         violation_window: 1.hour,        # Time window to count violations
         block_durations: [ 1.hour, 6.hours, 24.hours, 7.days ], # Escalating block durations
         permanent_block_after: 5,        # Permanent block after N violations (nil = never)
-        create_security_events: true,    # Create SecurityEvent records
-        monitor_only: false              # If true, log but don't block (even if auto_block is true)
+        create_security_events: true     # Create SecurityEvent records
       }
       @security_tracking = {
         enabled: true,
@@ -135,11 +135,12 @@ module Beskar
     end
 
     def waf_auto_block?
-      waf_enabled? && @waf[:auto_block] && !@waf[:monitor_only]
+      waf_enabled? && @waf[:auto_block] && !@monitor_only
     end
 
-    def waf_monitor_only?
-      @waf[:monitor_only] == true
+    # General monitor-only mode check (affects all blocking)
+    def monitor_only?
+      @monitor_only == true
     end
 
     # IP Whitelist configuration helpers

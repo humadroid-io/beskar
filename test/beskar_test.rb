@@ -42,18 +42,18 @@ class BeskarTest < ActiveSupport::TestCase
     original_waf = Beskar.configuration.waf.dup
 
     Beskar.configure do |config|
+      config.monitor_only = false
       config.waf = {
         enabled: true,
         auto_block: true,
-        block_threshold: 2,
-        monitor_only: false
+        block_threshold: 2
       }
     end
 
     config = Beskar.configuration
     assert config.waf_enabled?
     assert config.waf_auto_block?
-    assert_not config.waf_monitor_only?
+    assert_not config.monitor_only?
 
     # Restore original config
     Beskar.configuration.waf = original_waf

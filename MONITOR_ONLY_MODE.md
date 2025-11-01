@@ -2,28 +2,46 @@
 
 ## Overview
 
-Monitor-only mode allows you to enable the Web Application Firewall (WAF) to detect and log vulnerability scanning attempts **without actually blocking any requests**. This is ideal for:
+Monitor-only mode is a global setting that allows Beskar to detect, log, and create ban records for all security violations **without actually blocking any requests**. This applies to WAF, rate limiting, and IP bans. This is ideal for:
 
-- **Testing WAF in production** without risking false positives blocking legitimate users
-- **Analyzing attack patterns** before enabling blocking
-- **Gathering data** to tune your block threshold settings
-- **Gradual rollout** of WAF protection
+- **Testing Beskar in production** without risking false positives blocking legitimate users
+- **Analyzing attack patterns** and seeing which IPs would be banned
+- **Gathering real data** with actual ban records created (but not enforced)
+- **Verifying the library works** by seeing ban records and security events
+- **Gradual rollout** of security protection
 
 ## Configuration
 
 ```ruby
 # config/initializers/beskar.rb
 Beskar.configure do |config|
+  # Global monitor-only mode (affects ALL blocking features)
+  config.monitor_only = true    # ⚠️ Creates bans/events but DOESN'T block requests
+  
   config.waf = {
     enabled: true,              # Enable WAF detection
-    monitor_only: true,         # ⚠️ Log violations but DON'T block
-    auto_block: true,           # This will be honored when monitor_only is false
-    block_threshold: 3,         # Track threshold for reporting
+    auto_block: true,           # Creates ban records (enforced when monitor_only is false)
+    block_threshold: 3,         # Threshold for creating bans
     violation_window: 1.hour,
     create_security_events: true
   }
 end
 ```
+
+## What Happens in Monitor-Only Mode
+
+### 1. Ban Records ARE Created
+Even in monitor-only mode, `Beskar::BannedIp` records are created in the database. This allows you to:
+- See exactly which IPs would be banned
+- Verify the system is working correctly
+- Query banned IPs without actually blocking them
+- Test your thresholds with real data
+
+### 2. Security Events ARE Created
+All `Beskar::SecurityEvent` records are created normally, with metadata indicating monitor-only mode.
+
+### 3. Requests ARE NOT Blocked
+Despite having ban records, requests continue to be processed normally.
 
 ## What Gets Logged
 
@@ -45,7 +63,7 @@ When violation count reaches the threshold, you'll see:
 [Beskar::WAF] 🔍 MONITOR-ONLY: IP 203.0.113.50 WOULD BE BLOCKED 
 (threshold reached: 3/3 violations) - Duration would be: 1.0 hours, 
 Severity: critical, Patterns: Configuration file access attempt. 
-To enable blocking, set config.waf[:monitor_only] = false
+To enable blocking, set config.monitor_only = false
 ```
 
 ### 3. Middleware-Level Logging
@@ -81,16 +99,21 @@ event.metadata
 ### Query IPs that would have been blocked:
 
 ```ruby
-# Find all IPs that would have been blocked
+# Find all IPs that have been banned (but not enforced due to monitor-only)
+banned_ips = Beskar::BannedIp.active.where(reason: 'waf_violation')
+
+puts "IPs that are banned (not enforced in monitor-only): #{banned_ips.count}"
+banned_ips.each do |ban|
+  puts "  #{ban.ip_address}: #{ban.violation_count} violations, expires: #{ban.expires_at || 'permanent'}"
+end
+
+# You can also check security events
 would_be_blocked = Beskar::SecurityEvent
   .where(event_type: 'waf_violation')
   .where("metadata->>'monitor_only_mode' = ?", 'true')
   .where("metadata->>'would_be_blocked' = ?", 'true')
   .group(:ip_address)
   .count
-
-puts "IPs that would be blocked: #{would_be_blocked}"
-# => {"203.0.113.50"=>5, "198.51.100.42"=>3}
 ```
 
 ### Analyze attack patterns:
@@ -116,14 +139,17 @@ end
 ### Calculate blocking impact:
 
 ```ruby
-# How many unique IPs would have been blocked?
-blocked_ips = Beskar::SecurityEvent
-  .where(event_type: 'waf_violation')
-  .where("metadata->>'would_be_blocked' = ?", 'true')
-  .distinct
-  .pluck(:ip_address)
+# How many IPs are currently banned (but not enforced)?
+active_bans = Beskar::BannedIp.active
+puts "#{active_bans.count} IPs are currently banned"
 
-puts "#{blocked_ips.count} unique IPs would have been blocked"
+# See ban details
+active_bans.each do |ban|
+  puts "IP: #{ban.ip_address}"
+  puts "  Reason: #{ban.reason}"
+  puts "  Violations: #{ban.violation_count}"
+  puts "  Expires: #{ban.expires_at || 'PERMANENT'}"
+end
 
 # How many total requests would have been denied?
 total_requests = Beskar::SecurityEvent
@@ -139,8 +165,8 @@ puts "#{total_requests} requests would have been blocked in the last 24h"
 ### Step 1: Monitor for 24-48 hours
 
 ```ruby
-# Enable monitor-only mode
-config.waf[:monitor_only] = true
+# Enable monitor-only mode (global setting)
+config.monitor_only = true
 ```
 
 ### Step 2: Review the logs
@@ -148,7 +174,8 @@ config.waf[:monitor_only] = true
 Look for:
 - False positives (legitimate traffic being flagged)
 - Attack volume and patterns
-- IPs that would have been blocked
+- Actual ban records created (query `Beskar::BannedIp.all`)
+- Security events with full metadata
 
 ### Step 3: Whitelist any false positives
 
@@ -162,8 +189,8 @@ config.ip_whitelist = [
 ### Step 4: Enable blocking
 
 ```ruby
-# Turn off monitor-only mode
-config.waf[:monitor_only] = false
+# Turn off monitor-only mode (bans will now be enforced)
+config.monitor_only = false
 ```
 
 ### Step 5: Continue monitoring
@@ -210,9 +237,10 @@ tail -f log/production.log | grep "WOULD BE BLOCKED"
 ```ruby
 # Week 1: Monitor only
 Beskar.configure do |config|
+  config.monitor_only = true  # Global monitor-only mode
+  
   config.waf = {
     enabled: true,
-    monitor_only: true,
     block_threshold: 3
   }
 end
@@ -221,9 +249,10 @@ end
 
 # Week 2: Enable blocking with higher threshold
 Beskar.configure do |config|
+  config.monitor_only = false  # ✅ Now actually blocking (enforcing bans)
+  
   config.waf = {
     enabled: true,
-    monitor_only: false,  # ✅ Now actually blocking
     block_threshold: 5,   # Start conservative
     auto_block: true
   }
@@ -231,9 +260,10 @@ end
 
 # Week 3: Tune threshold based on real blocking data
 Beskar.configure do |config|
+  config.monitor_only = false  # Keep blocking enabled
+  
   config.waf = {
     enabled: true,
-    monitor_only: false,
     block_threshold: 3,   # Tighten security
     auto_block: true
   }
@@ -246,10 +276,16 @@ end
 
 Check your configuration:
 ```ruby
-Beskar.configuration.waf_monitor_only?  # => should return true
+Beskar.configuration.monitor_only?  # => should return true
 ```
 
-### Not seeing "would_be_blocked" in metadata?
+### Not seeing ban records?
+
+Check if bans are being created:
+```ruby
+Beskar::BannedIp.where(ip_address: "203.0.113.50").first
+# Should show the ban record even in monitor-only mode
+```
 
 Ensure you're exceeding the threshold:
 ```ruby

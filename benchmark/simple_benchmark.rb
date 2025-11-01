@@ -32,11 +32,11 @@ waf_request = OpenStruct.new(
 
 # Configure Beskar
 Beskar.configure do |config|
+  config.monitor_only = true # Don't actually block during benchmark
   config.ip_whitelist = ["192.168.1.100", "10.0.0.0/24"]
   config.waf = {
     enabled: true,
-    auto_block: false,
-    monitor_only: true
+    auto_block: false
   }
 end
 
@@ -105,9 +105,9 @@ total_ms = 0
   time = results[key]
   avg_ms = (time.real * 1000) / iterations
   ops_per_sec = (iterations / time.real).to_i
-  
+
   total_ms += avg_ms
-  
+
   printf "%-30s %9.4f ms %12s/s\n", label, avg_ms, ops_per_sec.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
 end
 
@@ -122,7 +122,7 @@ puts
 results.each do |name, time|
   avg_ms = (time.real * 1000) / iterations
   ops_per_sec = (iterations / time.real).to_i
-  
+
   label = case name
   when :whitelist then "Whitelist check"
   when :banned_ip then "Banned IP check (cache hit)"
@@ -130,7 +130,7 @@ results.each do |name, time|
   when :waf_clean then "WAF analysis (clean path)"
   when :waf_malicious then "WAF analysis (malicious)"
   end
-  
+
   puts "#{label}:"
   puts "  Average: %.4f ms/operation" % avg_ms
   puts "  Throughput: #{ops_per_sec.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse} ops/sec"
@@ -165,11 +165,11 @@ puts "-" * 40
   whitelist = (1..size).map { |i| "192.168.#{i / 255}.#{i % 255}" }
   Beskar.configuration.ip_whitelist = whitelist
   Beskar::Services::IpWhitelist.clear_cache!
-  
+
   time = Benchmark.measure do
     1000.times { Beskar::Services::IpWhitelist.whitelisted?(test_ip) }
   end
-  
+
   avg_ms = (time.real * 1000) / 1000
   printf "%15d %12.4f ms\n", size, avg_ms
 end
@@ -186,7 +186,7 @@ puts
 puts "The middleware checks run in this order:"
 puts
 printf "  1. Whitelist check      ~%.2f ms\n", (results[:whitelist].real * 1000) / iterations
-printf "  2. Banned IP check      ~%.2f ms (cache-first)\n", (results[:banned_ip].real * 1000) / iterations  
+printf "  2. Banned IP check      ~%.2f ms (cache-first)\n", (results[:banned_ip].real * 1000) / iterations
 printf "  3. Rate limit check     ~%.2f ms (cache-based)\n", (results[:rate_limit].real * 1000) / iterations
 printf "  4. WAF analysis         ~%.2f ms (pattern matching)\n", (results[:waf_malicious].real * 1000) / iterations
 puts "     " + ("-" * 35)

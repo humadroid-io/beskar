@@ -31,11 +31,12 @@ Beskar.configure do |config|
     auto_analyze_patterns: false     # Disable auto analysis
   }
 
+  config.monitor_only = false  # Top-level monitor setting
+
   config.waf = {
     enabled: true,
     auto_block: true,
-    block_threshold: 2,
-    monitor_only: false
+    block_threshold: 2
   }
 
   config.rate_limiting = {
