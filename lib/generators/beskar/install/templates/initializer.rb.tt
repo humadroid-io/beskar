@@ -55,90 +55,82 @@ Beskar.configure do |config|
   # ============================================================================
   # WAF (WEB APPLICATION FIREWALL)
   # ============================================================================
-  config.waf = {
-    enabled: true,
-    auto_block: true,                # Automatically block IPs after threshold
-    block_threshold: 3,               # Number of violations before blocking
-    violation_window: 1.hour,         # Time window to count violations
-    block_durations: [1.hour, 6.hours, 24.hours, 7.days], # Escalating durations
-    permanent_block_after: 5,         # Permanent block after N violations
-    create_security_events: true      # Create SecurityEvent records
-  }
+  # Enable WAF to protect against common attacks (XSS, SQL injection, etc.)
+  config.waf[:enabled] = true
+
+  # Optionally customize WAF settings (these are the defaults):
+  # config.waf[:auto_block] = true                # Automatically block IPs after threshold
+  # config.waf[:block_threshold] = 3              # Number of violations before blocking
+  # config.waf[:violation_window] = 1.hour        # Time window to count violations
+  # config.waf[:block_durations] = [1.hour, 6.hours, 24.hours, 7.days] # Escalating durations
+  # config.waf[:permanent_block_after] = 5        # Permanent block after N violations
+  # config.waf[:create_security_events] = true    # Create SecurityEvent records
+  # config.waf[:record_not_found_exclusions] = [] # Regex patterns to exclude from RecordNotFound detection
 
   # ============================================================================
   # SECURITY TRACKING
   # ============================================================================
-  config.security_tracking = {
-    enabled: true,
-    track_successful_logins: true,
-    track_failed_logins: true,
-    auto_analyze_patterns: true
-  }
+  # Security tracking is enabled by default. To disable or customize:
+  # config.security_tracking[:enabled] = false
+  # config.security_tracking[:track_successful_logins] = true
+  # config.security_tracking[:track_failed_logins] = true
+  # config.security_tracking[:auto_analyze_patterns] = true
 
   # ============================================================================
   # RATE LIMITING
   # ============================================================================
-  config.rate_limiting = {
-    ip_attempts: {
-      limit: 10,
-      period: 1.hour,
-      exponential_backoff: true
-    },
-    account_attempts: {
-      limit: 5,
-      period: 15.minutes,
-      exponential_backoff: true
-    },
-    global_attempts: {
-      limit: 100,
-      period: 1.minute,
-      exponential_backoff: false
-    }
-  }
+  # Rate limiting is configured by default. To customize:
+  # config.rate_limiting[:ip_attempts][:limit] = 10
+  # config.rate_limiting[:ip_attempts][:period] = 1.hour
+  # config.rate_limiting[:ip_attempts][:exponential_backoff] = true
+  #
+  # config.rate_limiting[:account_attempts][:limit] = 5
+  # config.rate_limiting[:account_attempts][:period] = 15.minutes
+  # config.rate_limiting[:account_attempts][:exponential_backoff] = true
+  #
+  # config.rate_limiting[:global_attempts][:limit] = 100
+  # config.rate_limiting[:global_attempts][:period] = 1.minute
+  # config.rate_limiting[:global_attempts][:exponential_backoff] = false
 
   # ============================================================================
   # RISK-BASED ACCOUNT LOCKING
   # ============================================================================
-  config.risk_based_locking = {
-    enabled: false,                    # Enable automatic account locking
-    immediate_signout: false,          # Sign out users immediately when locked
-    lock_threshold: 80,                # Risk score threshold for locking
-    lock_duration: 30.minutes,         # How long to lock the account
-    notification_email: nil,           # Email to notify on high-risk locks
-    unlock_after_duration: true        # Auto-unlock after duration
-  }
+  # Risk-based locking is disabled by default. To enable:
+  # config.risk_based_locking[:enabled] = true
+  # config.risk_based_locking[:immediate_signout] = false  # Sign out users immediately when locked
+  # config.risk_based_locking[:risk_threshold] = 75        # Risk score threshold for locking
+  # config.risk_based_locking[:auto_unlock_time] = 1.hour  # How long to lock the account
+  # config.risk_based_locking[:notify_user] = true         # Notify user on lock
+  # config.risk_based_locking[:log_lock_events] = true     # Log lock events
 
   # ============================================================================
   # GEOLOCATION
   # ============================================================================
-  # Requires MaxMind GeoLite2 database (download from maxmind.com)
-  config.geolocation = {
-    enabled: false,
-    database_path: Rails.root.join('db', 'GeoLite2-City.mmdb'),
-    track_country_changes: true,
-    suspicious_countries: [],          # e.g., ['CN', 'RU', 'KP']
-    block_countries: [],               # Completely block these countries
-    trust_cloudflare_headers: false   # Trust CF-IPCountry header
-  }
+  # Geolocation uses a mock provider by default. To use MaxMind:
+  # 1. Download GeoLite2-City database from maxmind.com
+  # 2. Place it in config/GeoLite2-City.mmdb
+  # 3. Configure:
+  # config.geolocation[:provider] = :maxmind
+  # config.geolocation[:maxmind_city_db_path] = Rails.root.join('config', 'GeoLite2-City.mmdb').to_s
+  # config.geolocation[:cache_ttl] = 4.hours
 
   # ============================================================================
   # AUTHENTICATION MODELS
   # ============================================================================
-  # Configure which models to track for security events
-  config.authentication_models = {
-    auto_detect: true,                # Auto-detect Devise models
-    devise: [],                       # e.g., [:user, :admin]
-    rails_auth: []                    # e.g., [:customer]
-  }
+  # Authentication models are auto-detected by default. To customize:
+  # config.authentication_models[:auto_detect] = false  # Disable auto-detection
+  # config.authentication_models[:devise] = [:user, :admin]
+  # config.authentication_models[:rails_auth] = [:customer]
 
   # ============================================================================
   # EMERGENCY PASSWORD RESET
   # ============================================================================
-  # Force password reset for compromised accounts
-  config.emergency_password_reset = {
-    enabled: false,
-    reset_method: :devise,            # :devise or :custom
-    notification_method: :email,      # :email or :sms
-    require_email_verification: true
-  }
+  # Emergency password reset is disabled by default. To enable:
+  # config.emergency_password_reset[:enabled] = true
+  # config.emergency_password_reset[:impossible_travel_threshold] = 3
+  # config.emergency_password_reset[:suspicious_device_threshold] = 5
+  # config.emergency_password_reset[:total_locks_threshold] = 5
+  # config.emergency_password_reset[:send_notification] = true
+  # config.emergency_password_reset[:notify_security_team] = true
+  # config.emergency_password_reset[:require_manual_unlock] = false
 end

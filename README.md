@@ -67,11 +67,11 @@ After monitoring for 24-48 hours, review the logs and disable monitor-only mode 
 
 ```ruby
 # config/initializers/beskar.rb
-config.waf = {
-  enabled: true,
-  monitor_only: false,  # Change this to enable blocking
+Beskar.configure do |config|
+  config.monitor_only = true # Change this to false to enable blocking
+  config.waf[:enabled] = true
   # ... rest of configuration
-}
+end
 ```
 
 ### Dashboard Authentication (REQUIRED)
@@ -207,16 +207,15 @@ Beskar.configure do |config|
 
   # === Web Application Firewall (WAF) ===
   # Real-time detection and blocking of vulnerability scanning attempts
-  config.waf = {
-    enabled: true,                        # Master switch for WAF
-    auto_block: true,                     # Automatically ban IPs after threshold
-    block_threshold: 3,                   # Number of violations before blocking
-    violation_window: 1.hour,             # Time window for counting violations
-    block_durations: [1.hour, 6.hours, 24.hours, 7.days], # Escalating ban durations
-    permanent_block_after: 5,             # Permanent ban after N violations
-    create_security_events: true,         # Log WAF violations to SecurityEvent table
-    monitor_only: false                   # If true, log violations but never block
-  }
+  # Note: Use [:key] syntax to preserve default settings
+  config.waf[:enabled] = true                        # Master switch for WAF
+  config.waf[:auto_block] = true                     # Automatically ban IPs after threshold
+  config.waf[:block_threshold] = 3                   # Number of violations before blocking
+  config.waf[:violation_window] = 1.hour             # Time window for counting violations
+  config.waf[:block_durations] = [1.hour, 6.hours, 24.hours, 7.days] # Escalating ban durations
+  config.waf[:permanent_block_after] = 5             # Permanent ban after N violations
+  config.waf[:create_security_events] = true         # Log WAF violations to SecurityEvent table
+  config.waf[:record_not_found_exclusions] = []      # Regex patterns to exclude from RecordNotFound detection
 
   # === Risk-Based Account Locking ===
   # Automatically lock accounts when authentication risk score exceeds threshold
@@ -490,31 +489,27 @@ Beskar's WAF detects and blocks vulnerability scanning attempts across 10 attack
 ```ruby
 # Production - Aggressive protection with Rails exception detection
 Beskar.configure do |config|
-  config.waf = {
-    enabled: true,
-    auto_block: true,
-    block_threshold: 2,              # Block after just 2 violations
-    violation_window: 30.minutes,
-    block_durations: [6.hours, 24.hours, 7.days, 30.days],
-    permanent_block_after: 4,
-    create_security_events: true,
+  config.waf[:enabled] = true
+  config.waf[:auto_block] = true
+  config.waf[:block_threshold] = 2              # Block after just 2 violations
+  config.waf[:violation_window] = 30.minutes
+  config.waf[:block_durations] = [6.hours, 24.hours, 7.days, 30.days]
+  config.waf[:permanent_block_after] = 4
+  config.waf[:create_security_events] = true
 
-    # Exclude certain paths from RecordNotFound detection to prevent false positives
-    record_not_found_exclusions: [
-      %r{/posts/.*},                # Don't flag missing blog posts as scanning
-      %r{/articles/\d+},            # Don't flag missing articles
-      %r{/public/.*}                # Ignore public content paths
-    ]
-  }
+  # Exclude certain paths from RecordNotFound detection to prevent false positives
+  config.waf[:record_not_found_exclusions] = [
+    %r{/posts/.*},                # Don't flag missing blog posts as scanning
+    %r{/articles/\d+},            # Don't flag missing articles
+    %r{/public/.*}                # Ignore public content paths
+  ]
 end
 
 # Development - Monitor only
 Beskar.configure do |config|
-  config.waf = {
-    enabled: true,
-    monitor_only: true,              # Log but never block
-    create_security_events: true
-  }
+  config.monitor_only = true              # Log but never block
+  config.waf[:enabled] = true
+  config.waf[:create_security_events] = true
 
   config.ip_whitelist = ["127.0.0.1", "::1"]  # Whitelist localhost
 end
@@ -747,21 +742,17 @@ Security events are logged to the `beskar_security_events` table for analysis an
 When first enabling WAF, use monitor-only mode to tune thresholds:
 
 ```ruby
-config.waf = {
-  enabled: true,
-  monitor_only: true,  # Log but don't block
-  create_security_events: true
-}
+config.monitor_only = true  # Log but don't block
+config.waf[:enabled] = true
+config.waf[:create_security_events] = true
 ```
 
 After reviewing logs for false positives, enable blocking:
 
 ```ruby
-config.waf = {
-  enabled: true,
-  monitor_only: false,
-  auto_block: true
-}
+config.monitor_only = false
+config.waf[:enabled] = true
+config.waf[:auto_block] = true
 ```
 
 ### 2. Whitelist Carefully
@@ -862,7 +853,7 @@ config.ip_whitelist = ["user.ip.address.here"]
 **Solution:** Enable monitor-only mode and review patterns:
 
 ```ruby
-config.waf[:monitor_only] = true
+config.monitor_only = true  # This is a global setting, not WAF-specific
 
 # Review what's being flagged
 Beskar::SecurityEvent.where(event_type: 'waf_violation').last(20).each do |event|

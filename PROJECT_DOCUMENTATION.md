@@ -371,15 +371,13 @@ Beskar.configure do |config|
   }
 
   # WAF Configuration
-  config.waf = {
-    enabled: true,
-    auto_block: true,
-    block_threshold: 3,
-    violation_window: 1.hour,
-    block_durations: [1.hour, 6.hours, 24.hours, 7.days],
-    permanent_block_after: 5,
-    create_security_events: true
-  }
+  config.waf[:enabled] = true
+  config.waf[:auto_block] = true
+  config.waf[:block_threshold] = 3
+  config.waf[:violation_window] = 1.hour
+  config.waf[:block_durations] = [1.hour, 6.hours, 24.hours, 7.days]
+  config.waf[:permanent_block_after] = 5
+  config.waf[:create_security_events] = true
 
   # Risk-Based Locking
   config.risk_based_locking = {

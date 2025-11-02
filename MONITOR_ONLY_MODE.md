@@ -17,14 +17,12 @@ Monitor-only mode is a global setting that allows Beskar to detect, log, and cre
 Beskar.configure do |config|
   # Global monitor-only mode (affects ALL blocking features)
   config.monitor_only = true    # ⚠️ Creates bans/events but DOESN'T block requests
-  
-  config.waf = {
-    enabled: true,              # Enable WAF detection
-    auto_block: true,           # Creates ban records (enforced when monitor_only is false)
-    block_threshold: 3,         # Threshold for creating bans
-    violation_window: 1.hour,
-    create_security_events: true
-  }
+
+  config.waf[:enabled] = true              # Enable WAF detection
+  config.waf[:auto_block] = true           # Creates ban records (enforced when monitor_only is false)
+  config.waf[:block_threshold] = 3         # Threshold for creating bans
+  config.waf[:violation_window] = 1.hour
+  config.waf[:create_security_events] = true
 end
 ```
 
@@ -238,11 +236,9 @@ tail -f log/production.log | grep "WOULD BE BLOCKED"
 # Week 1: Monitor only
 Beskar.configure do |config|
   config.monitor_only = true  # Global monitor-only mode
-  
-  config.waf = {
-    enabled: true,
-    block_threshold: 3
-  }
+
+  config.waf[:enabled] = true
+  config.waf[:block_threshold] = 3
 end
 
 # After reviewing logs and confirming no false positives...
@@ -250,23 +246,19 @@ end
 # Week 2: Enable blocking with higher threshold
 Beskar.configure do |config|
   config.monitor_only = false  # ✅ Now actually blocking (enforcing bans)
-  
-  config.waf = {
-    enabled: true,
-    block_threshold: 5,   # Start conservative
-    auto_block: true
-  }
+
+  config.waf[:enabled] = true
+  config.waf[:block_threshold] = 5   # Start conservative
+  config.waf[:auto_block] = true
 end
 
 # Week 3: Tune threshold based on real blocking data
 Beskar.configure do |config|
   config.monitor_only = false  # Keep blocking enabled
-  
-  config.waf = {
-    enabled: true,
-    block_threshold: 3,   # Tighten security
-    auto_block: true
-  }
+
+  config.waf[:enabled] = true
+  config.waf[:block_threshold] = 3   # Tighten security
+  config.waf[:auto_block] = true
 end
 ```
 

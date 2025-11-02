@@ -42,29 +42,27 @@ Beskar.configure do |config|
   # MONITOR-ONLY MODE - Set at the top level (affects all blocking features)
   config.monitor_only = true               # LOG ONLY - does not block (recommended to start)
 
-  config.waf = {
-    enabled: true,                        # Master switch for WAF
-    auto_block: true,                     # Auto-block IPs after threshold (when monitor_only=false)
-    block_threshold: 3,                   # Number of violations before blocking
-    violation_window: 1.hour,             # Time window for counting violations
-    block_durations: [1.hour, 6.hours, 24.hours, 7.days], # Escalating ban durations
-    permanent_block_after: 5,             # Permanent ban after N violations (nil = never)
-    create_security_events: true,         # Log violations to SecurityEvent table
+  config.waf[:enabled] = true                        # Master switch for WAF
+  config.waf[:auto_block] = true                     # Auto-block IPs after threshold (when monitor_only=false)
+  config.waf[:block_threshold] = 3                   # Number of violations before blocking
+  config.waf[:violation_window] = 1.hour             # Time window for counting violations
+  config.waf[:block_durations] = [1.hour, 6.hours, 24.hours, 7.days] # Escalating ban durations
+  config.waf[:permanent_block_after] = 5             # Permanent ban after N violations (nil = never)
+  config.waf[:create_security_events] = true         # Log violations to SecurityEvent table
 
-    # Rails Exception Detection - NEW FEATURE
-    # Detects potential scanning through Rails exceptions:
-    # - ActionController::UnknownFormat (e.g., /users/1.exe)
-    # - ActionDispatch::RemoteIp::IpSpoofAttackError (IP spoofing attempts)
-    # - ActiveRecord::RecordNotFound (record enumeration scans)
+  # Rails Exception Detection - NEW FEATURE
+  # Detects potential scanning through Rails exceptions:
+  # - ActionController::UnknownFormat (e.g., /users/1.exe)
+  # - ActionDispatch::RemoteIp::IpSpoofAttackError (IP spoofing attempts)
+  # - ActiveRecord::RecordNotFound (record enumeration scans)
 
-    # Exclude certain paths from RecordNotFound detection to avoid false positives
-    # Example: Exclude all post URLs from triggering WAF on 404s
-    record_not_found_exclusions: [
-      # %r{/posts/.*},                  # Don't flag missing posts as scanning
-      # %r{/articles/\d+},              # Don't flag missing articles
-      # %r{/public/.*},                 # Ignore public content paths
-    ]
-  }
+  # Exclude certain paths from RecordNotFound detection to avoid false positives
+  # Example: Exclude all post URLs from triggering WAF on 404s
+  config.waf[:record_not_found_exclusions] = [
+    # %r{/posts/.*},                  # Don't flag missing posts as scanning
+    # %r{/articles/\d+},              # Don't flag missing articles
+    # %r{/public/.*},                 # Ignore public content paths
+  ]
 
   # After monitoring for 24-48 hours, review logs and disable monitor_only:
   # config.monitor_only = false

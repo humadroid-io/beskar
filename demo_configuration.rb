@@ -33,15 +33,13 @@ Beskar.configure do |config|
 
   config.monitor_only = false  # Top-level monitor setting
 
-  config.waf = {
-    enabled: true,
-    auto_block: true,
-    block_threshold: 2,
-    record_not_found_exclusions: [
-      %r{/posts/.*},
-      %r{/articles/\d+}
-    ]
-  }
+  config.waf[:enabled] = true
+  config.waf[:auto_block] = true
+  config.waf[:block_threshold] = 2
+  config.waf[:record_not_found_exclusions] = [
+    %r{/posts/.*},
+    %r{/articles/\d+}
+  ]
 
   config.rate_limiting = {
     ip_attempts: {
@@ -170,17 +168,15 @@ puts "-" * 40
 
 # Enable WAF for this demo
 Beskar.configure do |config|
-  config.waf = {
-    enabled: true,
-    auto_block: true,
-    block_threshold: 3,
-    violation_window: 1.hour,
-    create_security_events: true,
-    record_not_found_exclusions: [
-      %r{/posts/.*},
-      %r{/articles/\d+}
-    ]
-  }
+  config.waf[:enabled] = true
+  config.waf[:auto_block] = true
+  config.waf[:block_threshold] = 3
+  config.waf[:violation_window] = 1.hour
+  config.waf[:create_security_events] = true
+  config.waf[:record_not_found_exclusions] = [
+    %r{/posts/.*},
+    %r{/articles/\d+}
+  ]
 end
 
 puts "WAF configured with exception detection:"
