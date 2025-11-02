@@ -2,6 +2,29 @@
 
 **Beskar** is a comprehensive, Rails-native security engine designed to provide multi-layered, proactive protection for modern web applications. It defends against common threats, bot activity, and account takeovers without requiring external dependencies, integrating seamlessly into your application as a natural extension of the framework.
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [Quick Start](#quick-start)
+  - [Dashboard Authentication (REQUIRED)](#dashboard-authentication-required)
+  - [Add to Your User Model](#add-to-your-user-model)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Risk-Based Account Locking](#risk-based-account-locking-with-devise-lockable)
+  - [Rate Limiting](#rate-limiting)
+  - [IP Whitelisting](#ip-whitelisting)
+  - [Web Application Firewall (WAF)](#web-application-firewall-waf)
+  - [IP Blocking and Banning](#ip-blocking-and-banning)
+  - [Security Events](#security-events)
+  - [Middleware Integration](#middleware-integration)
+- [WAF Pattern Reference](#waf-pattern-reference)
+- [Security Best Practices](#security-best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Features
 
 -   **Devise Integration:** Seamless integration with Devise authentication for automatic login tracking and security analysis.
@@ -144,7 +167,7 @@ Include the `SecurityTrackable` concern in your Devise user model:
 ```ruby
 # app/models/user.rb
 class User < ApplicationRecord
-  include Beskar::SecurityTrackable
+  include Beskar::Models::SecurityTrackable
 
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
@@ -154,15 +177,16 @@ end
 
 ## Configuration
 
-You can configure Beskar in the initializer file created by the installer:
+You can configure Beskar in the initializer file created by the installer.
+
+> **Note:** Dashboard authentication setup is covered in the [Dashboard Authentication](#dashboard-authentication-required) section above.
 
 ```ruby
 # config/initializers/beskar.rb
 Beskar.configure do |config|
   # === Dashboard Authentication (REQUIRED) ===
-  # Configure how users authenticate to access the Beskar dashboard
+  # See "Dashboard Authentication" section above for examples and details
   config.authenticate_admin = ->(request) do
-    # Return truthy to allow access, falsey to deny
     user = request.env['warden']&.authenticate(scope: :user)
     user&.admin?
   end
@@ -196,26 +220,20 @@ Beskar.configure do |config|
   }
 
   # === IP Whitelisting ===
-  # Allow trusted IPs to bypass all blocking (bans, rate limits, WAF)
-  # while still logging all activity for audit purposes
-  config.ip_whitelist = [
-    "192.168.1.100",      # Single IP address
-    "10.0.0.0/24",        # CIDR notation - entire subnet
-    "172.16.0.0/16",      # Larger CIDR range
-    "2001:db8::/32"       # IPv6 support
-  ]
+  # See "IP Whitelisting" section below for detailed examples
+  config.ip_whitelist = []  # Add trusted IPs here (supports CIDR notation)
 
   # === Web Application Firewall (WAF) ===
-  # Real-time detection and blocking of vulnerability scanning attempts
-  # Note: Use [:key] syntax to preserve default settings
+  # See "Web Application Firewall" section below for production examples
+  # Defaults shown here - use [:key] syntax to preserve other defaults
   config.waf[:enabled] = true                        # Master switch for WAF
-  config.waf[:auto_block] = true                     # Automatically ban IPs after threshold
-  config.waf[:block_threshold] = 3                   # Number of violations before blocking
-  config.waf[:violation_window] = 1.hour             # Time window for counting violations
-  config.waf[:block_durations] = [1.hour, 6.hours, 24.hours, 7.days] # Escalating ban durations
-  config.waf[:permanent_block_after] = 5             # Permanent ban after N violations
-  config.waf[:create_security_events] = true         # Log WAF violations to SecurityEvent table
-  config.waf[:record_not_found_exclusions] = []      # Regex patterns to exclude from RecordNotFound detection
+  # config.waf[:auto_block] = true                   # Default: true
+  # config.waf[:block_threshold] = 3                 # Default: 3 (production often uses 2)
+  # config.waf[:violation_window] = 1.hour           # Default: 1 hour
+  # config.waf[:block_durations] = [1.hour, 6.hours, 24.hours, 7.days] # Escalating bans
+  # config.waf[:permanent_block_after] = 5           # Permanent after 5 violations
+  # config.waf[:create_security_events] = true       # Log to SecurityEvent table
+  # config.waf[:record_not_found_exclusions] = []    # Regex patterns for false positives
 
   # === Risk-Based Account Locking ===
   # Automatically lock accounts when authentication risk score exceeds threshold
@@ -239,32 +257,11 @@ Beskar.configure do |config|
   }
 end
 
-# Security Tracking Configuration Details
-The security tracking system respects all configuration settings:
-
-- **`enabled: false`** - Completely disables all security event tracking
-- **`track_successful_logins: false`** - Stops tracking successful login events
-- **`track_failed_logins: false`** - Stops tracking failed login attempts
-- **`auto_analyze_patterns: false`** - Disables automatic threat pattern analysis
-
-When tracking is disabled via configuration, no `SecurityEvent` records are created and no background analysis jobs are queued.
 ```
 
 ## Usage
 
-### Basic Setup
-
-Once installed and configured, Beskar works automatically with Devise. Add the `SecurityTrackable` module to your User model:
-
-```ruby
-class User < ApplicationRecord
-  devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable
-
-  # Add Beskar security tracking
-  include Beskar::Models::SecurityTrackable
-end
-```
+> **Note:** If you haven't already, see the [Add to Your User Model](#add-to-your-user-model) section in Quick Start for setting up `SecurityTrackable`.
 
 ### Risk-Based Account Locking (with Devise Lockable)
 
@@ -487,15 +484,14 @@ Beskar's WAF detects and blocks vulnerability scanning attempts across 10 attack
 **Configuration Examples:**
 
 ```ruby
-# Production - Aggressive protection with Rails exception detection
+# Production - Stricter protection (recommended after monitoring)
 Beskar.configure do |config|
   config.waf[:enabled] = true
   config.waf[:auto_block] = true
-  config.waf[:block_threshold] = 2              # Block after just 2 violations
-  config.waf[:violation_window] = 30.minutes
-  config.waf[:block_durations] = [6.hours, 24.hours, 7.days, 30.days]
-  config.waf[:permanent_block_after] = 4
-  config.waf[:create_security_events] = true
+  config.waf[:block_threshold] = 2              # Stricter: 2 violations (default is 3)
+  config.waf[:violation_window] = 30.minutes    # Shorter window for faster response
+  config.waf[:block_durations] = [6.hours, 24.hours, 7.days, 30.days]  # Longer bans
+  config.waf[:permanent_block_after] = 4        # Permanent ban sooner
 
   # Exclude certain paths from RecordNotFound detection to prevent false positives
   config.waf[:record_not_found_exclusions] = [
@@ -505,7 +501,7 @@ Beskar.configure do |config|
   ]
 end
 
-# Development - Monitor only
+# Development - Monitor only (recommended initially)
 Beskar.configure do |config|
   config.monitor_only = true              # Log but never block
   config.waf[:enabled] = true
@@ -516,10 +512,14 @@ end
 ```
 
 **Blocking Behavior:**
+
+With **default settings** (threshold: 3):
 - **First violation**: Logged, violation count incremented
-- **Threshold reached** (default 3): IP automatically banned for 1 hour
+- **Threshold reached (3rd violation)**: IP automatically banned for 1 hour
 - **Repeat violations**: Ban duration escalates: 1h → 6h → 24h → 7d → **permanent**
 - **Permanent block**: After 5 violations (configurable), IP is permanently banned
+
+> **Production Tip:** After monitoring for 24-48 hours, consider using `block_threshold: 2` for more aggressive protection against persistent attackers.
 - **Monitor mode**: Logs all violations but never blocks (useful for tuning)
 - **Exception-based violations**: Rails exceptions (UnknownFormat, RecordNotFound, IP spoofing) count toward the same threshold
 - **Mixed violations**: Regular WAF patterns and exception detections accumulate together
@@ -545,12 +545,15 @@ end
 
 Beskar uses a hybrid cache + database blocking system that persists across application restarts.
 
-**Automatic IP Banning:**
+**Automatic IP Banning Thresholds:**
 
-IPs are automatically banned for:
-1. **Authentication abuse** - 10+ failed login attempts in 1 hour
-2. **Rate limit violations** - 5+ rate limit violations in 1 hour
-3. **WAF violations** - 3+ vulnerability scan attempts (configurable)
+| Trigger | Threshold | Time Window | Ban Duration | Configurable |
+|---------|-----------|-------------|--------------|--------------|
+| **Failed Authentication** | 10 attempts | 1 hour | 1 hour (escalating) | Via rate_limiting config |
+| **Rate Limit Violations** | 5 violations | 1 hour | 1 hour (escalating) | Via rate_limiting config |
+| **WAF Violations** | 3 violations | 1 hour | 1 hour (escalating) | Via waf[:block_threshold] |
+
+> **Note:** All ban durations escalate on repeat offenses: 1h → 6h → 24h → 7d → permanent
 
 **Manual IP Management:**
 
@@ -695,10 +698,7 @@ Every request passes through these security checks in order:
 **Features:**
 - **Early exit** - Banned IPs are blocked immediately for performance
 - **Whitelist bypass** - Trusted IPs bypass all blocking but activity is logged
-- **Auto-blocking** - Automatic IP banning after:
-  - 10+ failed authentication attempts (authentication abuse)
-  - 5+ rate limit violations in 1 hour (rate limit abuse)
-  - 3+ WAF violations (configurable, vulnerability scanning)
+- **Auto-blocking** - See [Automatic IP Banning Thresholds](#ip-blocking-and-banning) section for details
 - **Custom error pages** - Returns helpful 403/429 error responses
 - **Response headers** - Adds `X-Beskar-Blocked` and `X-Beskar-Rate-Limited` headers
 - **Graceful degradation** - Continues working if cache is unavailable
