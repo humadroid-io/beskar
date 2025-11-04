@@ -68,6 +68,22 @@ class WafExceptionTest < ActiveSupport::TestCase
     assert_equal "ActiveRecord::RecordNotFound", analysis[:exception_class]
   end
 
+  test "detects ActionDispatch::Http::MimeNegotiation::InvalidType as medium severity threat" do
+    request = mock_request("/api/data", "192.168.1.100")
+    exception = ActionDispatch::Http::MimeNegotiation::InvalidType.new('GET "../../../../../../../../etc/passwd{{" is not a valid MIME type')
+
+    analysis = Beskar::Services::Waf.analyze_exception(exception, request)
+
+    assert_not_nil analysis
+    assert analysis[:threat_detected]
+    assert_equal :invalid_mime_type, analysis[:patterns].first[:category]
+    assert_equal :medium, analysis[:highest_severity]
+    assert_equal "Invalid MIME type requested - potential scanner", analysis[:patterns].first[:description]
+    assert_equal "192.168.1.100", analysis[:ip_address]
+    assert_equal "ActionDispatch::Http::MimeNegotiation::InvalidType", analysis[:exception_class]
+    assert_includes analysis[:exception_message], 'is not a valid MIME type'
+  end
+
   test "excludes RecordNotFound for configured patterns" do
     # Test excluded path - should not detect threat
     request = mock_request("/posts/non-existent-slug", "192.168.1.100")
@@ -86,6 +102,45 @@ class WafExceptionTest < ActiveSupport::TestCase
     analysis = Beskar::Services::Waf.analyze_exception(exception, request)
     assert_not_nil analysis
     assert analysis[:threat_detected]
+  end
+
+  test "records violations for InvalidType exception" do
+    request = mock_request("/api/data", "192.168.1.100")
+    exception = ActionDispatch::Http::MimeNegotiation::InvalidType.new('GET "../../../../etc/passwd{{" is not a valid MIME type')
+
+    analysis = Beskar::Services::Waf.analyze_exception(exception, request)
+
+    # Record the violation
+    assert_difference 'Beskar::SecurityEvent.count', 1 do
+      violation_count = Beskar::Services::Waf.record_violation("192.168.1.100", analysis)
+      assert_equal 1, violation_count
+    end
+
+    # Check the security event was created correctly
+    event = Beskar::SecurityEvent.last
+    assert_equal 'waf_violation', event.event_type
+    assert_equal '192.168.1.100', event.ip_address
+    assert_equal 60, event.risk_score # medium severity = 60
+    assert_includes event.metadata['patterns_matched'], "Invalid MIME type requested - potential scanner"
+    assert_equal "ActionDispatch::Http::MimeNegotiation::InvalidType", event.metadata['waf_analysis']['exception_class']
+  end
+
+  test "auto-blocks IP after threshold violations from InvalidType exceptions" do
+    request = mock_request("/api/data", "192.168.1.100")
+    exception = ActionDispatch::Http::MimeNegotiation::InvalidType.new('Invalid MIME type')
+
+    # Create violations up to threshold
+    3.times do |i|
+      analysis = Beskar::Services::Waf.analyze_exception(exception, request)
+      Beskar::Services::Waf.record_violation("192.168.1.100", analysis)
+    end
+
+    # IP should now be banned
+    assert Beskar::BannedIp.banned?("192.168.1.100")
+
+    banned_ip = Beskar::BannedIp.find_by(ip_address: "192.168.1.100")
+    assert_equal 'waf_violation', banned_ip.reason
+    assert_includes banned_ip.details, "Invalid MIME type requested - potential scanner"
   end
 
   test "records violations for exception-based threats" do

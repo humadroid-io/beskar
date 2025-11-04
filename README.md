@@ -479,7 +479,8 @@ Beskar's WAF detects and blocks vulnerability scanning attempts across 10 attack
 7. **Common Exploits** (Critical Severity) - `/shell.php`, `/c99.php`, `/webshell`
 8. **ActionController::UnknownFormat** (Medium Severity) - Detects requests for unusual formats like `/users/1.exe`, `/api/data.bat` that trigger Rails format exceptions, indicating potential scanning
 9. **ActionDispatch::RemoteIp::IpSpoofAttackError** (Critical Severity) - Detects IP spoofing attempts when conflicting IP headers are present
-10. **ActiveRecord::RecordNotFound** (Low Severity) - Detects potential record enumeration scans like `/admin/users/999999`, with configurable exclusions to prevent false positives
+10. **ActionDispatch::Http::MimeNegotiation::InvalidType** (Medium Severity) - Detects invalid MIME type requests like `GET "../../../../../../../../etc/passwd{{"` that indicate scanner activity
+11. **ActiveRecord::RecordNotFound** (Low Severity) - Detects potential record enumeration scans like `/admin/users/999999`, with configurable exclusions to prevent false positives
 
 **Configuration Examples:**
 
@@ -728,6 +729,10 @@ Security events are logged to the `beskar_security_events` table for analysis an
 | Framework Debug | Medium | `/rails/info/routes`, `/__debug__`, `/telescope` | 60 |
 | CMS Detection | Medium | `/joomla`, `/drupal`, `/magento` | 60 |
 | Common Exploits | **Critical** | `/shell.php`, `/c99.php`, `/webshell` | **95** |
+| UnknownFormat Exception | Medium | `/users/1.exe`, `/api/data.bat` | 60 |
+| IP Spoofing Exception | **Critical** | Conflicting IP headers | **95** |
+| Invalid MIME Type Exception | Medium | `GET "../../../../etc/passwd{{"` | 60 |
+| RecordNotFound Exception | Low | `/admin/users/999999` | 40 |
 
 **Pattern matching is:**
 - Case-insensitive

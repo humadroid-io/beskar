@@ -153,8 +153,14 @@ beskar/
   - `framework_debug`: Debug endpoints
   - `cms_scan`: CMS detection attempts
   - `common_exploits`: Known exploit files
+- **Rails Exception Detection**:
+  - `ActionController::UnknownFormat`: Unusual format requests (Medium severity)
+  - `ActionDispatch::RemoteIp::IpSpoofAttackError`: IP spoofing attempts (Critical severity)
+  - `ActionDispatch::Http::MimeNegotiation::InvalidType`: Invalid MIME types (Medium severity)
+  - `ActiveRecord::RecordNotFound`: Record enumeration attempts (Low severity, configurable exclusions)
 - **Key Methods**:
   - `.analyze_request(request)`: Check for vulnerability patterns
+  - `.analyze_exception(exception, request)`: Analyze Rails exceptions as threats
   - `.should_block?(ip)`: Determine if IP should be blocked
   - `.record_violation(ip, analysis)`: Log violation and potentially ban
 

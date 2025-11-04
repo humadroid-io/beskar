@@ -112,6 +112,13 @@ module Beskar
         end
         # Re-raise to allow normal error handling
         raise
+      rescue ActionDispatch::Http::MimeNegotiation::InvalidType => e
+        # Analyze invalid MIME type as potential scanner
+        if Beskar.configuration.waf_enabled?
+          handle_rails_exception(request, e, ip_address, is_whitelisted)
+        end
+        # Re-raise to allow normal error handling
+        raise
       rescue ActionController::RoutingError => e
         # If WAF is enabled, log 404s as potential scanning attempts
         if Beskar.configuration.waf_enabled?

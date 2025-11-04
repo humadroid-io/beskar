@@ -220,6 +220,23 @@ module Beskar
               exception_class: exception.class.name,
               exception_message: exception.message
             }
+          when ActionDispatch::Http::MimeNegotiation::InvalidType
+            {
+              threat_detected: true,
+              patterns: [{
+                category: :invalid_mime_type,
+                pattern: "ActionDispatch::Http::MimeNegotiation::InvalidType",
+                severity: :medium,
+                description: "Invalid MIME type requested - potential scanner",
+                matched_path: request.fullpath
+              }],
+              highest_severity: :medium,
+              ip_address: request.ip,
+              user_agent: request.user_agent,
+              timestamp: Time.current,
+              exception_class: exception.class.name,
+              exception_message: exception.message
+            }
           else
             nil
           end
