@@ -25,7 +25,8 @@ module Beskar
       end
 
       get "/beskar/banned_ips"
-      assert_response :unauthorized
+      # Returns 404 to avoid revealing Beskar is installed
+      assert_response :not_found
     end
 
     test "allows access when authenticated" do
@@ -39,8 +40,8 @@ module Beskar
       end
 
       get "/beskar/banned_ips"
-      assert_response :unauthorized
-      assert_match /Beskar authentication not configured/, response.body
+      # Logs error but returns 404 to avoid revealing Beskar is installed
+      assert_response :not_found
     end
 
     # Index Action Tests

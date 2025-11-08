@@ -34,9 +34,9 @@ module Beskar
         admin_authenticated
       end
 
-      # Try to access dashboard without authentication
+      # Try to access dashboard without authentication - returns 404 to avoid revealing Beskar is installed
       get "/beskar/dashboard"
-      assert_response :unauthorized
+      assert_response :not_found
 
       # Simulate admin login
       admin_authenticated = true
@@ -370,9 +370,9 @@ module Beskar
         false # Deny all access
       end
 
-      # Non-admin cannot access
+      # Non-admin cannot access - returns 404 to avoid revealing Beskar is installed
       get "/beskar/dashboard"
-      assert_response :unauthorized
+      assert_response :not_found
 
       # Test with authentication that allows access
       Beskar.configuration.authenticate_admin = lambda do |request|

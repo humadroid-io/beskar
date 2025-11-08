@@ -107,6 +107,8 @@ The Beskar dashboard requires authentication to prevent unauthorized access. You
 # config/initializers/beskar.rb
 Beskar.configure do |config|
   # REQUIRED: Configure dashboard authentication
+  # The block is executed in the controller context and receives the request object.
+  # You have access to all controller methods (cookies, session, etc.) and helpers.
   config.authenticate_admin = ->(request) do
     # Return truthy to allow access, falsey to deny
 
@@ -127,11 +129,16 @@ config.authenticate_admin = ->(request) do
   request.headers['Authorization'] == "Bearer #{ENV['BESKAR_ADMIN_TOKEN']}"
 end
 
-# HTTP Basic Auth
+# HTTP Basic Auth (uses controller method)
 config.authenticate_admin = ->(request) do
   authenticate_or_request_with_http_basic do |username, password|
     username == ENV['BESKAR_USERNAME'] && password == ENV['BESKAR_PASSWORD']
   end
+end
+
+# Cookie-based authentication (uses controller cookies)
+config.authenticate_admin = ->(request) do
+  cookies.signed[:admin_token] == ENV['BESKAR_ADMIN_TOKEN']
 end
 
 # Development/Testing bypass (use with caution!)

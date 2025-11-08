@@ -35,8 +35,7 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      assert_match /unauthorized/i, response.body
+      assert_response :not_found
     end
 
     test "denies access when custom authentication returns nil" do
@@ -44,7 +43,7 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
+      assert_response :not_found
     end
 
     test "handles custom authentication exception gracefully" do
@@ -54,8 +53,7 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      assert_match /unauthorized/i, response.body
+      assert_response :not_found
     end
 
     test "logs error when custom authentication raises exception" do
@@ -67,7 +65,7 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
+      assert_response :not_found
     end
 
     test "custom authentication receives request object" do
@@ -102,7 +100,7 @@ module Beskar
 
       get "/beskar/dashboard", headers: { 'Authorization' => 'Bearer wrong-token' }
 
-      assert_response :unauthorized
+      assert_response :not_found
     end
 
     # ===================
@@ -112,23 +110,23 @@ module Beskar
     test "requires authentication configuration in all environments" do
       Beskar.configuration.authenticate_admin = nil
 
+      # Should log error message but return 404 to avoid revealing Beskar is installed
+      Rails.logger.expects(:error).with(regexp_matches(/Beskar authentication not configured/))
+
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      assert_match /Beskar authentication not configured/, response.body
-      assert_match /Configure Beskar\.configuration\.authenticate_admin/, response.body
+      assert_response :not_found
     end
 
-    test "shows helpful examples when authentication not configured" do
+    test "logs helpful examples when authentication not configured" do
       Beskar.configuration.authenticate_admin = nil
+
+      # Error message should be logged (not shown to user)
+      Rails.logger.expects(:error).with(regexp_matches(/Example 1: Check for admin user with Devise/))
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      # Check for helpful examples in the error message
-      assert_match /Example 1: Check for admin user with Devise/, response.body
-      assert_match /Example 2: Simple token-based auth/, response.body
-      assert_match /Example 3: For development\/testing/, response.body
+      assert_response :not_found
     end
 
     test "requires configuration regardless of environment" do
@@ -138,10 +136,11 @@ module Beskar
           Rails.env = ActiveSupport::StringInquirer.new(env)
           Beskar.configuration.authenticate_admin = nil
 
+          Rails.logger.expects(:error).with(regexp_matches(/Beskar authentication not configured/))
+
           get "/beskar/dashboard"
 
-          assert_response :unauthorized
-          assert_match /Beskar authentication not configured/, response.body
+          assert_response :not_found
         ensure
           Rails.env = original_env
         end
@@ -157,9 +156,7 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      assert_equal 'text/html; charset=utf-8', response.content_type
-      assert_match /unauthorized/i, response.body
+      assert_response :not_found
     end
 
     test "handles JSON authentication failure" do
@@ -167,9 +164,9 @@ module Beskar
 
       get "/beskar/dashboard.json"
 
-      assert_response :unauthorized
+      assert_response :not_found
       json_response = JSON.parse(response.body)
-      assert_equal 'Unauthorized', json_response['error']
+      assert_equal 'Not found', json_response['error']
     end
 
     # ===================
@@ -203,6 +200,16 @@ module Beskar
       assert_response :success
     end
 
+    test "authentication failure returns 404 to avoid information disclosure" do
+      Beskar.configuration.authenticate_admin = ->(_request) { false }
+
+      # Should return 404 instead of 401
+      # This prevents attackers from discovering that Beskar is installed
+      get "/beskar/dashboard"
+
+      assert_response :not_found
+    end
+
     test "handles multiple consecutive requests with same authentication" do
       Beskar.configuration.authenticate_admin = ->(_request) { true }
 
@@ -221,7 +228,7 @@ module Beskar
       # Second request - not authenticated
       Beskar.configuration.authenticate_admin = ->(_request) { false }
       get "/beskar/dashboard"
-      assert_response :unauthorized
+      assert_response :not_found
 
       # Third request - authenticated again
       Beskar.configuration.authenticate_admin = ->(_request) { true }
@@ -465,7 +472,7 @@ module Beskar
 
       # Second request uses new auth logic
       get "/beskar/dashboard"
-      assert_response :unauthorized
+      assert_response :not_found
     end
 
     test "authentication handles request with special characters in path" do
@@ -504,7 +511,7 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
+      assert_response :not_found
     end
 
     test "multiple authentication failures in sequence" do
@@ -512,7 +519,7 @@ module Beskar
 
       5.times do
         get "/beskar/dashboard"
-        assert_response :unauthorized
+        assert_response :not_found
       end
     end
 
@@ -528,21 +535,18 @@ module Beskar
       assert_equal 10, result[:current_page]
     end
 
-    test "handle_authentication_failure works correctly for both request types" do
+    test "handle_authentication_failure returns 404 for both request types" do
       Beskar.configuration.authenticate_admin = ->(_request) { false }
 
-      # HTML request
+      # HTML request - returns 404 instead of revealing Beskar is installed
       get "/beskar/dashboard"
-      assert_response :unauthorized
-      assert_equal 'text/html; charset=utf-8', response.content_type
-      assert_match /unauthorized/i, response.body
+      assert_response :not_found
 
-      # JSON request
+      # JSON request - also returns 404
       get "/beskar/dashboard.json"
-      assert_response :unauthorized
-      assert_equal 'application/json; charset=utf-8', response.content_type
+      assert_response :not_found
       json_response = JSON.parse(response.body)
-      assert_equal 'Unauthorized', json_response['error']
+      assert_equal 'Not found', json_response['error']
     end
 
     test "custom authentication can return different values for same request path" do
@@ -558,7 +562,7 @@ module Beskar
 
       # Second request should fail (even)
       get "/beskar/dashboard"
-      assert_response :unauthorized
+      assert_response :not_found
 
       # Third request should succeed (odd)
       get "/beskar/dashboard"

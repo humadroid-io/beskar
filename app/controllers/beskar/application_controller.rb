@@ -25,7 +25,10 @@ module Beskar
     end
 
     def handle_custom_authentication
-      result = Beskar.configuration.authenticate_admin.call(request)
+      # Execute the authentication block in the controller's context
+      # This gives the block access to controller methods like cookies, session,
+      # authenticate_or_request_with_http_basic, etc.
+      result = instance_exec(request, &Beskar.configuration.authenticate_admin)
       return true if result
 
       handle_authentication_failure
@@ -37,6 +40,7 @@ module Beskar
     end
 
     def handle_missing_authentication_configuration
+      # Log the configuration error for debugging, but return 404 to avoid revealing Beskar is installed
       error_message = <<~MSG
         Beskar authentication not configured!
 
@@ -44,27 +48,43 @@ module Beskar
 
         # config/initializers/beskar.rb
         Beskar.configuration.authenticate_admin = ->(request) do
+          # The block is executed in the controller context, giving you access
+          # to controller methods like cookies, session, authenticate_or_request_with_http_basic, etc.
+
           # Example 1: Check for admin user with Devise
-          # current_user = warden.authenticate(scope: :user)
-          # current_user&.admin?
+          # user = request.env['warden']&.authenticate(scope: :user)
+          # user&.admin?
 
-          # Example 2: Simple token-based auth
-          # request.headers['Authorization'] == 'Bearer YOUR_SECRET_TOKEN'
+          # Example 2: HTTP Basic Auth (uses controller method)
+          # authenticate_or_request_with_http_basic do |username, password|
+          #   username == ENV['BESKAR_USERNAME'] && password == ENV['BESKAR_PASSWORD']
+          # end
 
-          # Example 3: For development/testing (NOT for production!)
+          # Example 3: Cookie-based auth (uses controller cookies)
+          # cookies.signed[:admin_token] == ENV['BESKAR_ADMIN_TOKEN']
+
+          # Example 4: Simple token-based auth
+          # request.headers['Authorization'] == "Bearer #{ENV['BESKAR_ADMIN_TOKEN']}"
+
+          # Example 5: For development/testing (NOT for production!)
           # Rails.env.development? || Rails.env.test?
         end
       MSG
 
-      render plain: error_message, status: :unauthorized
+      Rails.logger.error error_message
+      render_404
     end
 
     def handle_authentication_failure
+      # Return 404 to avoid revealing that Beskar is installed
+      render_404
+    end
+
+    def render_404
       respond_to do |format|
-        format.html {
-          render plain: "Unauthorized access to Beskar dashboard", status: :unauthorized
-        }
-        format.json { render json: { error: "Unauthorized" }, status: :unauthorized }
+        format.html { render file: "#{Rails.public_path}/404.html", status: :not_found, layout: false }
+        format.json { render json: { error: "Not found" }, status: :not_found }
+        format.any  { head :not_found }
       end
     end
 

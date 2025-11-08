@@ -7,8 +7,10 @@ Beskar.configure do |config|
   # Configure how users authenticate to access the Beskar dashboard.
   # This is REQUIRED and must be set for all environments.
   #
-  # The authenticate_admin callback receives the request object and should
-  # return truthy value to allow access, falsey to deny.
+  # The authenticate_admin callback receives the request object and is executed
+  # in the controller context, giving you access to all controller methods
+  # (cookies, session, authenticate_or_request_with_http_basic, etc.).
+  # The block should return truthy value to allow access, falsey to deny.
   #
   # Example 1: Devise with admin role
   # config.authenticate_admin = ->(request) do
@@ -26,11 +28,16 @@ Beskar.configure do |config|
   #   Rails.env.development? || Rails.env.test?
   # end
   #
-  # Example 4: HTTP Basic Auth
+  # Example 4: HTTP Basic Auth (uses controller method)
   # config.authenticate_admin = ->(request) do
   #   authenticate_or_request_with_http_basic do |username, password|
   #     username == ENV['BESKAR_USERNAME'] && password == ENV['BESKAR_PASSWORD']
   #   end
+  # end
+  #
+  # Example 5: Cookie-based authentication (uses controller cookies)
+  # config.authenticate_admin = ->(request) do
+  #   cookies.signed[:admin_token] == ENV['BESKAR_ADMIN_TOKEN']
   # end
 
   # ============================================================================

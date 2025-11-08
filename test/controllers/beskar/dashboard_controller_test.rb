@@ -32,8 +32,8 @@ module Beskar
 
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      assert_match /unauthorized/i, response.body
+      # Returns 404 to avoid revealing Beskar is installed
+      assert_response :not_found
     end
 
     test "allows access when authenticated" do
@@ -47,10 +47,10 @@ module Beskar
       # Reset to no authentication
       Beskar.configuration.authenticate_admin = nil
 
+      # Logs error but returns 404 to avoid revealing Beskar is installed
       get "/beskar/dashboard"
 
-      assert_response :unauthorized
-      assert_match /Beskar authentication not configured/, response.body
+      assert_response :not_found
     end
 
     # Dashboard display tests

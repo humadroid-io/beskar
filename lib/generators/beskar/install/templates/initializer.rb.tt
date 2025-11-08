@@ -2,37 +2,53 @@
 
 Beskar.configure do |config|
   # ============================================================================
-  # DASHBOARD AUTHENTICATION
+  # DASHBOARD AUTHENTICATION (REQUIRED)
   # ============================================================================
   # Configure how to authenticate access to the Beskar security dashboard.
-  # This is REQUIRED in production environments.
+  # This is REQUIRED for all environments.
+  #
+  # The authenticate_admin callback receives the request object and is executed
+  # in the controller context, giving you access to all controller methods
+  # (cookies, session, authenticate_or_request_with_http_basic, etc.).
+  # The block should return truthy value to allow access, falsey to deny.
 
-  # Option 1: Using Devise admin authentication
-  # config.authenticate_admin = proc do
-  #   authenticate_admin! # Your Devise admin authentication method
+  # Option 1: Using Devise with admin role (recommended for production)
+  # config.authenticate_admin = ->(request) do
+  #   user = request.env['warden']&.authenticate(scope: :user)
+  #   user&.admin?
   # end
 
-  # Option 2: Custom authentication with current_user
-  # config.authenticate_admin = proc do
-  #   redirect_to main_app.root_path, alert: "Not authorized" unless current_user&.admin?
-  # end
-
-  # Option 3: HTTP Basic Authentication
-  # config.authenticate_admin = proc do
+  # Option 2: HTTP Basic Authentication (uses controller method)
+  # config.authenticate_admin = ->(request) do
   #   authenticate_or_request_with_http_basic("Beskar Admin") do |username, password|
   #     username == ENV['BESKAR_ADMIN_USERNAME'] &&
   #     password == ENV['BESKAR_ADMIN_PASSWORD']
   #   end
   # end
 
-  # Option 4: Using CanCanCan
-  # config.authenticate_admin = proc do
+  # Option 3: Token-based authentication
+  # config.authenticate_admin = ->(request) do
+  #   request.headers['Authorization'] == "Bearer #{ENV['BESKAR_ADMIN_TOKEN']}"
+  # end
+
+  # Option 4: Cookie-based authentication (uses controller cookies)
+  # config.authenticate_admin = ->(request) do
+  #   cookies.signed[:admin_token] == ENV['BESKAR_ADMIN_TOKEN']
+  # end
+
+  # Option 5: Using CanCanCan (uses controller method)
+  # config.authenticate_admin = ->(request) do
   #   authorize! :manage, :beskar_dashboard
   # end
 
-  # Option 5: Using Pundit
-  # config.authenticate_admin = proc do
+  # Option 6: Using Pundit (uses controller method)
+  # config.authenticate_admin = ->(request) do
   #   authorize :beskar_dashboard, :access?
+  # end
+
+  # Option 7: For development/testing ONLY (NOT for production!)
+  # config.authenticate_admin = ->(request) do
+  #   Rails.env.development? || Rails.env.test?
   # end
 
   # ============================================================================
