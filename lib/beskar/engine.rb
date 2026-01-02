@@ -31,10 +31,10 @@ module Beskar
             # This happens AFTER successful authentication but BEFORE the request completes
             # Requires :lockable module to be enabled on the user model
             if Beskar.configuration.immediate_signout? &&
-               Beskar.configuration.risk_based_locking_enabled? &&
-               security_event &&
-               user_was_just_locked?(user, security_event) &&
-               user.respond_to?(:access_locked?) && user.access_locked?
+                Beskar.configuration.risk_based_locking_enabled? &&
+                security_event &&
+                user_was_just_locked?(user, security_event) &&
+                user.respond_to?(:access_locked?) && user.access_locked?
               Beskar::Logger.warn("Signing out user #{user.id} due to high-risk lock")
               auth.logout
               throw :warden, scope: opts[:scope], message: :account_locked_due_to_high_risk
@@ -54,10 +54,10 @@ module Beskar
           if env
             request = ActionDispatch::Request.new(env)
             scope = opts[:scope]
-            
+
             # Try to get model class from configuration
             model_class = Beskar.configuration&.model_class_for_scope(scope)
-            
+
             if model_class && model_class.respond_to?(:track_failed_authentication)
               model_class.track_failed_authentication(request, scope)
             else
@@ -76,7 +76,7 @@ module Beskar
 
       # Check if an account_locked or lock_attempted event was just created
       recent_lock = user.security_events
-        .where(event_type: [ "account_locked", "lock_attempted" ])
+        .where(event_type: ["account_locked", "lock_attempted"])
         .where("created_at >= ?", 10.seconds.ago)
         .order(created_at: :desc)
         .first
@@ -84,27 +84,5 @@ module Beskar
       recent_lock.present?
     end
 
-    # Add engine migrations to host app's migration paths
-    initializer "beskar.append_migrations" do |app|
-      # Don't add migrations if we're inside the engine itself (testing)
-      if !root.to_s.include?(app.root.to_s) && !app.root.to_s.include?(root.to_s)
-        engine_migrations = root.join("db", "migrate").to_s
-
-        # Add to Rails paths
-        app.config.paths["db/migrate"] << engine_migrations
-      end
-    end
-
-    # Ensure ActiveRecord sees the engine migrations after initialization
-    # config.after_initialize do |app|
-    #   unless root.to_s.include?(app.root.to_s)
-    #     engine_migrations = root.join("db", "migrate").to_s
-
-    #     # Update ActiveRecord::Tasks paths
-    #     current_paths = Array(ActiveRecord::Tasks::DatabaseTasks.migrations_paths)
-    #     current_paths << engine_migrations
-    #     ActiveRecord::Tasks::DatabaseTasks.migrations_paths = current_paths.uniq
-    #   end
-    # end
   end
 end
