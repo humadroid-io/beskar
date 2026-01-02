@@ -9,7 +9,7 @@ module Beskar
 
       # Setup authentication for tests
       Beskar.configure do |config|
-        config.authenticate_admin = -> (request) { true }
+        config.authenticate_admin = ->(request) { true }
       end
     end
 
@@ -21,7 +21,7 @@ module Beskar
     # Authentication Tests
     test "requires authentication when configured" do
       Beskar.configure do |config|
-        config.authenticate_admin = -> (request) { false }
+        config.authenticate_admin = ->(request) { false }
       end
 
       get "/beskar/security_events"
@@ -64,25 +64,25 @@ module Beskar
       get "/beskar/security_events"
 
       assert_response :success
-      assert_match /no.*events|empty/i, response.body
+      assert_match(/no.*events|empty/i, response.body)
     end
 
     test "paginates security events" do
       create_list(:security_event, 30)
 
-      get "/beskar/security_events", params: { per_page: 10 }
+      get "/beskar/security_events", params: {per_page: 10}
 
       assert_response :success
       # Count table rows (excluding header)
       assert_select "tbody tr", count: 10
-      assert_match /Showing.*10.*of.*30/i, response.body
+      assert_match(/Showing.*10.*of.*30/i, response.body)
     end
 
     test "respects per_page parameter" do
       create_list(:security_event, 50)
 
       [10, 25, 50].each do |per_page|
-        get "/beskar/security_events", params: { per_page: per_page }
+        get "/beskar/security_events", params: {per_page: per_page}
         assert_response :success
         assert_select "tbody tr", maximum: per_page
       end
@@ -92,15 +92,15 @@ module Beskar
       create_list(:security_event, 5)
 
       # Invalid page number
-      get "/beskar/security_events", params: { page: -1 }
+      get "/beskar/security_events", params: {page: -1}
       assert_response :success
 
       # Invalid per_page
-      get "/beskar/security_events", params: { per_page: 0 }
+      get "/beskar/security_events", params: {per_page: 0}
       assert_response :success
 
       # Non-numeric values
-      get "/beskar/security_events", params: { page: "abc", per_page: "xyz" }
+      get "/beskar/security_events", params: {page: "abc", per_page: "xyz"}
       assert_response :success
     end
 
@@ -110,7 +110,7 @@ module Beskar
       create(:security_event, event_type: "suspicious_activity")
       create(:security_event, event_type: "rate_limit_exceeded")
 
-      get "/beskar/security_events", params: { event_type: "login_failure" }
+      get "/beskar/security_events", params: {event_type: "login_failure"}
 
       assert_response :success
       # Filter is applied (event types may appear in dropdowns)
@@ -118,23 +118,23 @@ module Beskar
     end
 
     test "filters by risk level" do
-      low = create(:security_event, risk_score: 10, ip_address: "10.0.0.1")
-      medium = create(:security_event, risk_score: 45, ip_address: "10.0.0.2")
-      high = create(:security_event, risk_score: 75, ip_address: "10.0.0.3")
-      critical = create(:security_event, risk_score: 95, ip_address: "10.0.0.4")
+      create(:security_event, risk_score: 10, ip_address: "10.0.0.1")
+      create(:security_event, risk_score: 45, ip_address: "10.0.0.2")
+      create(:security_event, risk_score: 75, ip_address: "10.0.0.3")
+      create(:security_event, risk_score: 95, ip_address: "10.0.0.4")
 
-      get "/beskar/security_events", params: { risk_level: "high" }
+      get "/beskar/security_events", params: {risk_level: "high"}
 
       assert_response :success
       # Filter is applied successfully
     end
 
     test "sorts by risk score" do
-      low = create(:security_event, risk_score: 20, ip_address: "10.0.0.1")
-      medium = create(:security_event, risk_score: 50, ip_address: "10.0.0.2")
-      high = create(:security_event, risk_score: 90, ip_address: "10.0.0.3")
+      create(:security_event, risk_score: 20, ip_address: "10.0.0.1")
+      create(:security_event, risk_score: 50, ip_address: "10.0.0.2")
+      create(:security_event, risk_score: 90, ip_address: "10.0.0.3")
 
-      get "/beskar/security_events", params: { sort: "risk_score", direction: "desc" }
+      get "/beskar/security_events", params: {sort: "risk_score", direction: "desc"}
 
       assert_response :success
       # All events displayed
@@ -144,11 +144,11 @@ module Beskar
     end
 
     test "sorts by IP address" do
-      event1 = create(:security_event, ip_address: "192.168.1.1")
-      event2 = create(:security_event, ip_address: "10.0.0.1")
-      event3 = create(:security_event, ip_address: "172.16.0.1")
+      create(:security_event, ip_address: "192.168.1.1")
+      create(:security_event, ip_address: "10.0.0.1")
+      create(:security_event, ip_address: "172.16.0.1")
 
-      get "/beskar/security_events", params: { sort: "ip_address", direction: "asc" }
+      get "/beskar/security_events", params: {sort: "ip_address", direction: "asc"}
 
       assert_response :success
       # All IPs present
@@ -159,14 +159,14 @@ module Beskar
 
     # Search Tests
     test "searches across fields" do
-      event1 = create(:security_event,
+      create(:security_event,
         ip_address: "192.168.1.1",
         event_type: "login_failure")
-      event2 = create(:security_event,
+      create(:security_event,
         ip_address: "10.0.0.1",
         event_type: "login_success")
 
-      get "/beskar/security_events", params: { search: "192.168" }
+      get "/beskar/security_events", params: {search: "192.168"}
 
       assert_response :success
       # Should find event by IP address
@@ -174,14 +174,14 @@ module Beskar
     end
 
     test "searches by event type" do
-      event1 = create(:security_event,
+      create(:security_event,
         event_type: "login_failure",
         ip_address: "192.168.1.1")
-      event2 = create(:security_event,
+      create(:security_event,
         event_type: "login_success",
         ip_address: "10.0.0.1")
 
-      get "/beskar/security_events", params: { search: "failure" }
+      get "/beskar/security_events", params: {search: "failure"}
 
       assert_response :success
       # Should find event by event type
@@ -190,7 +190,7 @@ module Beskar
     test "handles empty search gracefully" do
       create_list(:security_event, 3)
 
-      get "/beskar/security_events", params: { search: "" }
+      get "/beskar/security_events", params: {search: ""}
 
       assert_response :success
       assert_select "tbody tr", count: 3
@@ -212,9 +212,9 @@ module Beskar
 
     test "exports filtered results to CSV" do
       high_risk = create(:security_event, risk_score: 80)
-      low_risk = create(:security_event, risk_score: 20)
+      create(:security_event, risk_score: 20)
 
-      get "/beskar/security_events/export.csv", params: { risk_level: "high" }
+      get "/beskar/security_events/export.csv", params: {risk_level: "high"}
 
       assert_response :success
       csv_content = response.body
@@ -222,7 +222,7 @@ module Beskar
       # refute_match low_risk.ip_address, csv_content
     end
     test "exports to JSON" do
-      events = create_list(:security_event, 2)
+      create_list(:security_event, 2)
 
       get "/beskar/security_events/export.json"
 
@@ -239,8 +239,7 @@ module Beskar
         event_type: "login_failure",
         ip_address: "192.168.1.100",
         risk_score: 75,
-        metadata: { browser: "Chrome", os: "Windows" }
-      )
+        metadata: {browser: "Chrome", os: "Windows"})
 
       get "/beskar/security_events/#{event.id}"
 
@@ -260,7 +259,7 @@ module Beskar
     end
 
     test "displays associated banned IP if exists" do
-      banned_ip = create(:banned_ip, ip_address: "192.168.1.1")
+      create(:banned_ip, ip_address: "192.168.1.1")
       event = create(:security_event, ip_address: "192.168.1.1")
 
       get "/beskar/security_events/#{event.id}"
@@ -271,14 +270,13 @@ module Beskar
 
     test "handles non-existent event gracefully" do
       # Controller uses find which raises RecordNotFound
-      begin
-        get "/beskar/security_events/999999"
-        # If we get here, controller handles missing records differently
-        assert_response :not_found
-      rescue ActiveRecord::RecordNotFound
-        # This is expected behavior
-        assert true
-      end
+
+      get "/beskar/security_events/999999"
+      # If we get here, controller handles missing records differently
+      assert_response :not_found
+    rescue ActiveRecord::RecordNotFound
+      # This is expected behavior
+      assert true
     end
 
     # UI Elements Tests
@@ -313,7 +311,7 @@ module Beskar
     test "includes pagination controls when needed" do
       create_list(:security_event, 30)
 
-      get "/beskar/security_events", params: { per_page: 10 }
+      get "/beskar/security_events", params: {per_page: 10}
 
       assert_response :success
       # Page should render with limited results
@@ -336,10 +334,9 @@ module Beskar
     end
 
     test "escapes user input in display" do
-      event = create(:security_event,
+      create(:security_event,
         attempted_email: "<script>alert('xss')</script>",
-        metadata: { note: "<img src=x onerror=alert('xss')>" }
-      )
+        metadata: {note: "<img src=x onerror=alert('xss')>"})
 
       get "/beskar/security_events"
 
@@ -354,7 +351,7 @@ module Beskar
       create_list(:security_event, 100)
 
       start_time = Time.current
-      get "/beskar/security_events", params: { per_page: 25 }
+      get "/beskar/security_events", params: {per_page: 25}
       duration = Time.current - start_time
 
       assert_response :success
@@ -378,7 +375,7 @@ module Beskar
     # Error Handling Tests
     test "handles database errors gracefully" do
       # Simulate a database error by using an invalid sort column
-      get "/beskar/security_events", params: { sort: "'; DROP TABLE events; --" }
+      get "/beskar/security_events", params: {sort: "'; DROP TABLE events; --"}
 
       assert_response :success
     end
@@ -386,7 +383,7 @@ module Beskar
     test "handles malformed parameters" do
       get "/beskar/security_events", params: {
         "event_type[]" => ["login", "logout"],
-        "risk_level{}" => { "test" => "value" }
+        "risk_level{}" => {"test" => "value"}
       }
 
       assert_response :success

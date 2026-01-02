@@ -16,17 +16,17 @@ module Beskar
 
       # Make handle_high_risk_lock public (it's private in Generic)
       public
-      
+
       # Rails 8 auth-specific: Handle high risk lock by destroying sessions
       # Public method called when high-risk event is detected
       def handle_high_risk_lock(security_event, request)
         reason = determine_lock_reason(security_event)
-        
+
         Beskar::Logger.warn("Rails auth high-risk lock detected: #{reason}")
-        
+
         # Destroy all sessions to immediately lock out attacker
         destroy_all_sessions(except: request.session.id)
-        
+
         # Check if this warrants emergency password reset
         if should_reset_password?(security_event, reason)
           perform_emergency_password_reset(security_event, reason)
@@ -64,28 +64,28 @@ module Beskar
           recent_impossible_travel = security_events
             .where(event_type: ["account_locked", "login_success"])
             .where("created_at >= ?", 24.hours.ago)
-            .where("metadata->>'geolocation' LIKE ?", '%impossible_travel%')
+            .where("metadata->>'geolocation' LIKE ?", "%impossible_travel%")
             .count
-          
+
           recent_impossible_travel >= (config[:impossible_travel_threshold] || 3)
-          
+
         when :suspicious_device
           # Multiple suspicious device logins
           recent_suspicious = security_events
             .where(event_type: "account_locked")
             .where("created_at >= ?", 24.hours.ago)
-            .where("metadata->>'device_info' LIKE ?", '%suspicious%')
+            .where("metadata->>'device_info' LIKE ?", "%suspicious%")
             .count
-          
+
           recent_suspicious >= (config[:suspicious_device_threshold] || 5)
-          
+
         else
           # For other reasons, check total lock count
           recent_locks = security_events
             .where(event_type: "account_locked")
             .where("created_at >= ?", 24.hours.ago)
             .count
-          
+
           recent_locks >= (config[:total_locks_threshold] || 5)
         end
       end
@@ -93,14 +93,14 @@ module Beskar
       # Perform emergency password reset
       def perform_emergency_password_reset(security_event, reason)
         config = Beskar.configuration.emergency_password_reset
-        
+
         # Generate a cryptographically secure random password
         new_password = SecureRandom.base58(32)
-        
+
         begin
           # Update password
           update!(password: new_password, password_confirmation: new_password)
-          
+
           # Log the reset event
           security_events.create!(
             event_type: "emergency_password_reset",
@@ -114,22 +114,21 @@ module Beskar
             },
             risk_score: 100
           )
-          
+
           # Send notification to user
           if config[:send_notification]
             send_emergency_reset_notification(reason)
           end
-          
+
           # Notify security team
           if config[:notify_security_team]
             notify_security_team_of_reset(reason, security_event)
           end
-          
+
           Beskar::Logger.warn("Emergency password reset performed for user #{id}, reason: #{reason}")
-          
         rescue => e
           Beskar::Logger.error("Failed to perform emergency password reset: #{e.message}")
-          
+
           # Create failed reset event
           security_events.create!(
             event_type: "emergency_password_reset_failed",

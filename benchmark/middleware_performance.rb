@@ -138,7 +138,7 @@ def simulate_middleware_check(request)
 
   # 4. WAF check
   if Beskar.configuration.waf_enabled?
-    waf_result = Beskar::Services::Waf.analyze_request(request)
+    Beskar::Services::Waf.analyze_request(request)
     # Would normally record violation here, but skip for benchmark
   end
 

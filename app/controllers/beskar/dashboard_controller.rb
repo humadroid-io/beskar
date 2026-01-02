@@ -2,7 +2,7 @@ module Beskar
   class DashboardController < ApplicationController
     def index
       # Time ranges for statistics
-      @time_range = params[:time_range] || '24h'
+      @time_range = params[:time_range] || "24h"
       @start_time = calculate_start_time(@time_range)
 
       # Overview statistics
@@ -52,15 +52,15 @@ module Beskar
 
     def calculate_start_time(range)
       case range
-      when '1h'
+      when "1h"
         1.hour.ago
-      when '6h'
+      when "6h"
         6.hours.ago
-      when '24h'
+      when "24h"
         24.hours.ago
-      when '7d'
+      when "7d"
         7.days.ago
-      when '30d'
+      when "30d"
         30.days.ago
       else
         24.hours.ago

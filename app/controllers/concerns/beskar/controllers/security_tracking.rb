@@ -1,11 +1,11 @@
 module Beskar
   module Controllers
     # Controller concern for tracking Rails 8 authentication events
-    # 
+    #
     # Usage in SessionsController:
     #   class SessionsController < ApplicationController
     #     include Beskar::Controllers::SecurityTracking
-    #     
+    #
     #     def create
     #       if user = User.authenticate_by(params.permit(:email_address, :password))
     #         track_authentication_success(user)

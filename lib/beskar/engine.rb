@@ -58,7 +58,7 @@ module Beskar
             # Try to get model class from configuration
             model_class = Beskar.configuration&.model_class_for_scope(scope)
 
-            if model_class && model_class.respond_to?(:track_failed_authentication)
+            if model_class&.respond_to?(:track_failed_authentication)
               model_class.track_failed_authentication(request, scope)
             else
               Beskar::Logger.debug("No trackable model found for scope: #{scope}")
@@ -83,6 +83,5 @@ module Beskar
 
       recent_lock.present?
     end
-
   end
 end

@@ -1,26 +1,26 @@
 Beskar::Engine.routes.draw do
   # Root route - dashboard
-  root to: 'dashboard#index'
+  root to: "dashboard#index"
 
   # Dashboard
-  get 'dashboard', to: 'dashboard#index', as: :dashboard
+  get "dashboard", to: "dashboard#index", as: :dashboard
 
   # Security Events
   resources :security_events, only: [:index, :show] do
     collection do
-      get 'export'
+      get "export"
     end
   end
 
   # Banned IPs
   resources :banned_ips do
     member do
-      post 'extend'
+      post "extend"
     end
 
     collection do
-      post 'bulk_action'
-      get 'export'
+      post "bulk_action"
+      get "export"
     end
   end
 
@@ -29,13 +29,13 @@ Beskar::Engine.routes.draw do
     namespace :v1 do
       resources :security_events, only: [:index, :show] do
         collection do
-          get 'stats'
+          get "stats"
         end
       end
 
       resources :banned_ips, only: [:index, :show, :create, :destroy] do
         member do
-          post 'extend'
+          post "extend"
         end
       end
     end

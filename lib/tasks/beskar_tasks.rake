@@ -22,13 +22,13 @@ namespace :beskar do
 
     # Create initializer
     initializer_path = Rails.root.join("config/initializers/beskar.rb")
-    
+
     if File.exist?(initializer_path)
       puts "⚠️  Initializer already exists at config/initializers/beskar.rb"
       print "   Overwrite? (y/N): "
       response = $stdin.gets.chomp.downcase
-      
-      unless response == 'y' || response == 'yes'
+
+      unless response == "y" || response == "yes"
         puts "   Skipping initializer creation"
         puts
         next_steps
@@ -41,7 +41,7 @@ namespace :beskar do
 
     # Read the template and process ERB (Rails will be available in the rake task context)
     template_content = File.read(template_path)
-    erb = ERB.new(template_content, trim_mode: '-')
+    erb = ERB.new(template_content, trim_mode: "-")
 
     # Evaluate the ERB template in a context where Rails is available
     processed_content = erb.result(binding)

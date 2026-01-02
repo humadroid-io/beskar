@@ -36,18 +36,16 @@ module Beskar
 
         formatted_message = format_message(message, component)
         logger.send(level, formatted_message)
-      rescue StandardError => e
+      rescue => e
         # Fallback to stderr if logging fails
-        $stderr.puts "[Beskar::Logger] Failed to log message: #{e.message}"
-        $stderr.puts "[Beskar::Logger] Original message: #{formatted_message}"
+        warn "[Beskar::Logger] Failed to log message: #{e.message}"
+        warn "[Beskar::Logger] Original message: #{formatted_message}"
       end
 
       # Configure the logger instance
       #
       # @param logger_instance [Logger, nil] The logger to use, defaults to Rails.logger
-      def logger=(logger_instance)
-        @logger = logger_instance
-      end
+      attr_writer :logger
 
       # Get the current logger instance
       #
@@ -86,9 +84,7 @@ module Beskar
       #     'Beskar::Services::Waf' => 'WAF',
       #     'Beskar::Services::AccountLocker' => 'AccountLocker'
       #   }
-      def component_aliases=(aliases)
-        @component_aliases = aliases
-      end
+      attr_writer :component_aliases
 
       # Get component aliases
       #
@@ -156,16 +152,16 @@ module Beskar
         return aliased if aliased
 
         # Remove Beskar:: prefix if present for lookup
-        clean_name = component_name.sub(/^Beskar::/, '')
+        clean_name = component_name.sub(/^Beskar::/, "")
         aliased = component_aliases[clean_name]
         return aliased if aliased
 
         # Check if it's already a simple component name (no ::)
-        return clean_name unless clean_name.include?('::')
+        return clean_name unless clean_name.include?("::")
 
         # Extract the last component for nested classes
         # e.g., "Beskar::Services::Waf" -> "Waf"
-        last_component = clean_name.split('::').last
+        last_component = clean_name.split("::").last
         component_aliases[clean_name] || last_component
       end
 
@@ -192,7 +188,7 @@ module Beskar
         if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
           Rails.logger
         else
-          require 'logger'
+          require "logger"
           ::Logger.new($stdout)
         end
       end
@@ -202,28 +198,28 @@ module Beskar
       # @return [Hash] Default aliases
       def default_component_aliases
         {
-          'Beskar::Services::Waf' => 'WAF',
-          'Beskar::Services::WAF' => 'WAF',
-          'Services::Waf' => 'WAF',
-          'Services::WAF' => 'WAF',
-          'Beskar::Services::AccountLocker' => 'AccountLocker',
-          'Services::AccountLocker' => 'AccountLocker',
-          'Beskar::Services::RateLimiter' => 'RateLimiter',
-          'Services::RateLimiter' => 'RateLimiter',
-          'Beskar::Services::IpWhitelist' => 'IpWhitelist',
-          'Services::IpWhitelist' => 'IpWhitelist',
-          'Beskar::Services::GeolocationService' => 'GeolocationService',
-          'Services::GeolocationService' => 'GeolocationService',
-          'Beskar::Services::DeviceDetector' => 'DeviceDetector',
-          'Services::DeviceDetector' => 'DeviceDetector',
-          'Beskar::Middleware::RequestAnalyzer' => 'Middleware',
-          'Middleware::RequestAnalyzer' => 'Middleware',
-          'Beskar::Models::SecurityTrackableDevise' => 'SecurityTracking',
-          'Models::SecurityTrackableDevise' => 'SecurityTracking',
-          'Beskar::Models::SecurityTrackableAuthenticable' => 'SecurityTracking',
-          'Models::SecurityTrackableAuthenticable' => 'SecurityTracking',
-          'Beskar::Models::SecurityTrackableGeneric' => 'SecurityTracking',
-          'Models::SecurityTrackableGeneric' => 'SecurityTracking'
+          "Beskar::Services::Waf" => "WAF",
+          "Beskar::Services::WAF" => "WAF",
+          "Services::Waf" => "WAF",
+          "Services::WAF" => "WAF",
+          "Beskar::Services::AccountLocker" => "AccountLocker",
+          "Services::AccountLocker" => "AccountLocker",
+          "Beskar::Services::RateLimiter" => "RateLimiter",
+          "Services::RateLimiter" => "RateLimiter",
+          "Beskar::Services::IpWhitelist" => "IpWhitelist",
+          "Services::IpWhitelist" => "IpWhitelist",
+          "Beskar::Services::GeolocationService" => "GeolocationService",
+          "Services::GeolocationService" => "GeolocationService",
+          "Beskar::Services::DeviceDetector" => "DeviceDetector",
+          "Services::DeviceDetector" => "DeviceDetector",
+          "Beskar::Middleware::RequestAnalyzer" => "Middleware",
+          "Middleware::RequestAnalyzer" => "Middleware",
+          "Beskar::Models::SecurityTrackableDevise" => "SecurityTracking",
+          "Models::SecurityTrackableDevise" => "SecurityTracking",
+          "Beskar::Models::SecurityTrackableAuthenticable" => "SecurityTracking",
+          "Models::SecurityTrackableAuthenticable" => "SecurityTracking",
+          "Beskar::Models::SecurityTrackableGeneric" => "SecurityTracking",
+          "Models::SecurityTrackableGeneric" => "SecurityTracking"
         }
       end
     end

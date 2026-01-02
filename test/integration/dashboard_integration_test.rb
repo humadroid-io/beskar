@@ -85,11 +85,11 @@ module Beskar
       attacker_ip = "192.168.100.50"
       5.times do |i|
         create(:security_event,
-               event_type: "login_failure",
-               ip_address: attacker_ip,
-               risk_score: 70 + i * 5,
-               created_at: (5 - i).minutes.ago,
-               metadata: { attempted_email: "admin@example.com" })
+          event_type: "login_failure",
+          ip_address: attacker_ip,
+          risk_score: 70 + i * 5,
+          created_at: (5 - i).minutes.ago,
+          metadata: {attempted_email: "admin@example.com"})
       end
 
       # View dashboard and see the threat
@@ -100,7 +100,7 @@ module Beskar
       assert_match attacker_ip, response.body
 
       # Ban via the form
-      assert_difference 'Beskar::BannedIp.count', 1 do
+      assert_difference "Beskar::BannedIp.count", 1 do
         post "/beskar/banned_ips", params: {
           banned_ip: {
             ip_address: attacker_ip,
@@ -176,18 +176,18 @@ module Beskar
     test "comprehensive IP ban management workflow" do
       # Create an active ban
       ban = create(:banned_ip,
-                   ip_address: "192.168.50.1",
-                   reason: "Initial violation",
-                   expires_at: 1.hour.from_now,
-                   violation_count: 1)
+        ip_address: "192.168.50.1",
+        reason: "Initial violation",
+        expires_at: 1.hour.from_now,
+        violation_count: 1)
 
       # View ban details
       get "/beskar/banned_ips/#{ban.id}"
       assert_response :success
-      assert_match /192.168.50.1/, response.body
+      assert_match(/192.168.50.1/, response.body)
 
       # Simulate repeat violation - extend the ban
-      post "/beskar/banned_ips/#{ban.id}/extend", params: { duration: "24h" }
+      post "/beskar/banned_ips/#{ban.id}/extend", params: {duration: "24h"}
       assert_redirected_to "/beskar/banned_ips/#{ban.id}"
 
       ban.reload
@@ -199,7 +199,7 @@ module Beskar
 
       get "/beskar/banned_ips/#{ban.reload.id}"
       assert_response :success
-      assert_match /Permanent/i, response.body
+      assert_match(/Permanent/i, response.body)
 
       # Later, decide to unban
       delete "/beskar/banned_ips/#{ban.id}"
@@ -241,7 +241,7 @@ module Beskar
 
       # Verify top threats section exists and shows the brute force IP
       assert_select ".card-title", text: /Top Threat IPs/i
-      assert_match /192.168.1.100/, response.body
+      assert_match(/192.168.1.100/, response.body)
     end
 
     # Test filtering and search across dashboard
@@ -251,24 +251,24 @@ module Beskar
 
       # Create events with searchable patterns
       create(:security_event,
-             ip_address: "10.0.0.1",
-             metadata: { details: "Suspicious user agent: sqlmap" })
+        ip_address: "10.0.0.1",
+        metadata: {details: "Suspicious user agent: sqlmap"})
       create(:security_event,
-             ip_address: "10.0.0.2",
-             metadata: { details: "Normal browsing activity" })
+        ip_address: "10.0.0.2",
+        metadata: {details: "Normal browsing activity"})
 
       # Search for SQL injection indicators
-      get "/beskar/security_events", params: { search: "sqlmap" }
+      get "/beskar/security_events", params: {search: "sqlmap"}
       assert_response :success
       # Check that we found the event with sqlmap in metadata
-      assert_match /sqlmap/, response.body
+      assert_match(/sqlmap/, response.body)
 
       # Use time range filter
       Beskar::SecurityEvent.destroy_all
-      old_event = create(:security_event, created_at: 25.hours.ago)
-      recent_event = create(:security_event, created_at: 1.hour.ago)
+      create(:security_event, created_at: 25.hours.ago)
+      create(:security_event, created_at: 1.hour.ago)
 
-      get "/beskar/dashboard", params: { time_range: "24h" }
+      get "/beskar/dashboard", params: {time_range: "24h"}
       assert_response :success
 
       # Should show some events
@@ -279,14 +279,14 @@ module Beskar
     test "bulk operations on banned IPs" do
       # Create mix of expired and active bans
       active_bans = create_list(:banned_ip, 3, :active)
-      expired_bans = create_list(:banned_ip, 5, :expired)
+      create_list(:banned_ip, 5, :expired)
 
       # View all bans
       get "/beskar/banned_ips"
       assert_response :success
 
       # Test bulk unban action
-      assert_difference 'Beskar::BannedIp.count', -2 do
+      assert_difference "Beskar::BannedIp.count", -2 do
         post "/beskar/banned_ips/bulk_action", params: {
           bulk_action: "unban",
           ip_ids: [active_bans[0].id, active_bans[1].id]
@@ -314,10 +314,10 @@ module Beskar
       # Initial suspicious activity
       2.times do
         create(:security_event,
-               event_type: "login_failure",
-               ip_address: attacker_ip,
-               risk_score: 40,
-               created_at: 10.minutes.ago)
+          event_type: "login_failure",
+          ip_address: attacker_ip,
+          risk_score: 40,
+          created_at: 10.minutes.ago)
       end
 
       # Check dashboard shows moderate threat
@@ -327,14 +327,14 @@ module Beskar
       # Continue attack with escalation
       3.times do
         create(:security_event,
-               event_type: "waf_violation",
-               ip_address: attacker_ip,
-               risk_score: 85,
-               created_at: 2.minutes.ago)
+          event_type: "waf_violation",
+          ip_address: attacker_ip,
+          risk_score: 85,
+          created_at: 2.minutes.ago)
       end
 
       # Refresh dashboard - threat should be prominent
-      get "/beskar/dashboard", params: { time_range: "1h" }
+      get "/beskar/dashboard", params: {time_range: "1h"}
       assert_response :success
 
       # High risk events should be visible
@@ -385,14 +385,14 @@ module Beskar
 
       # Can perform actions as admin
       post "/beskar/banned_ips",
-           params: {
-             banned_ip: {
-               ip_address: "10.0.0.1",
-               reason: "Admin ban"
-             },
-             ban_type: "temporary",
-             duration: "3600" # 1 hour in seconds
-           }
+        params: {
+          banned_ip: {
+            ip_address: "10.0.0.1",
+            reason: "Admin ban"
+          },
+          ban_type: "temporary",
+          duration: "3600" # 1 hour in seconds
+        }
 
       assert_response :redirect
       assert Beskar::BannedIp.banned?("10.0.0.1")
@@ -420,7 +420,7 @@ module Beskar
       get "/beskar/dashboard"
       assert_response :success
       # Check for zero stat values
-      assert_match /0/, response.body
+      assert_match(/0/, response.body)
     end
 
     # Test dashboard data consistency
@@ -429,9 +429,9 @@ module Beskar
       Beskar::SecurityEvent.destroy_all
       Beskar::BannedIp.destroy_all
 
-      events = create_list(:security_event, 10, created_at: 1.hour.ago)
-      high_risk_events = create_list(:security_event, 3, :high_risk, created_at: 1.hour.ago)
-      bans = create_list(:banned_ip, 5, :active)
+      create_list(:security_event, 10, created_at: 1.hour.ago)
+      create_list(:security_event, 3, :high_risk, created_at: 1.hour.ago)
+      create_list(:banned_ip, 5, :active)
 
       # Get counts from dashboard
       get "/beskar/dashboard"
@@ -451,7 +451,7 @@ module Beskar
       get "/beskar/security_events"
       assert_response :success
       # Events should be displayed in table
-      assert_match /security_event/, response.body
+      assert_match(/security_event/, response.body)
 
       # Navigate to banned IPs page
       get "/beskar/banned_ips"
@@ -478,14 +478,14 @@ module Beskar
     def create_brute_force_pattern(ip, start_time)
       20.times do |i|
         create(:security_event,
-               event_type: "login_failure",
-               ip_address: ip,
-               risk_score: 60 + i,
-               created_at: start_time + i.minutes,
-               metadata: {
-                 attempted_email: ["admin", "root", "administrator"][i % 3] + "@example.com",
-                 details: "Failed login attempt #{i + 1}"
-               })
+          event_type: "login_failure",
+          ip_address: ip,
+          risk_score: 60 + i,
+          created_at: start_time + i.minutes,
+          metadata: {
+            attempted_email: ["admin", "root", "administrator"][i % 3] + "@example.com",
+            details: "Failed login attempt #{i + 1}"
+          })
       end
     end
 
@@ -494,16 +494,16 @@ module Beskar
 
       payloads.each_with_index do |payload, i|
         create(:security_event,
-               event_type: "waf_violation",
-               ip_address: ip,
-               risk_score: 85 + i * 5,
-               created_at: start_time + (i * 5).minutes,
-               metadata: {
-                 waf_rule: "sql_injection",
-                 payload: payload,
-                 path: "/api/search",
-                 details: "SQL injection attempt detected"
-               })
+          event_type: "waf_violation",
+          ip_address: ip,
+          risk_score: 85 + i * 5,
+          created_at: start_time + (i * 5).minutes,
+          metadata: {
+            waf_rule: "sql_injection",
+            payload: payload,
+            path: "/api/search",
+            details: "SQL injection attempt detected"
+          })
       end
     end
 
@@ -512,30 +512,30 @@ module Beskar
 
       paths.each_with_index do |path, i|
         create(:security_event,
-               event_type: "suspicious_request",
-               ip_address: ip,
-               risk_score: 70,
-               created_at: start_time + i.seconds,
-               user_agent: "BadBot/1.0",
-               metadata: {
-                 path: path,
-                 details: "Automated scan detected",
-                 bot_detected: true
-               })
+          event_type: "suspicious_request",
+          ip_address: ip,
+          risk_score: 70,
+          created_at: start_time + i.seconds,
+          user_agent: "BadBot/1.0",
+          metadata: {
+            path: path,
+            details: "Automated scan detected",
+            bot_detected: true
+          })
       end
     end
 
     def create_normal_traffic_pattern(start_time)
       10.times do |i|
         create(:security_event,
-               event_type: "login_success",
-               ip_address: "192.168.1.#{i + 1}",
-               risk_score: rand(5..15),
-               created_at: start_time + (i * 10).minutes,
-               user: @regular_user,
-               metadata: {
-                 details: "Normal user activity"
-               })
+          event_type: "login_success",
+          ip_address: "192.168.1.#{i + 1}",
+          risk_score: rand(5..15),
+          created_at: start_time + (i * 10).minutes,
+          user: @regular_user,
+          metadata: {
+            details: "Normal user activity"
+          })
       end
     end
 

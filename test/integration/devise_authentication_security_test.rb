@@ -246,7 +246,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "concurrent login attempts from different IPs create separate security events" do
-    ip_addresses = [ worker_ip(22), worker_ip(23), worker_ip(24) ]
+    ip_addresses = [worker_ip(22), worker_ip(23), worker_ip(24)]
 
     # Simulate concurrent login attempts
     ip_addresses.each do |ip|
@@ -362,7 +362,7 @@ class DeviseAuthenticationSecurityTest < ActionDispatch::IntegrationTest
 
   test "rate limiting respects different IP addresses" do
     # Create attempts from different IPs to test IP-based isolation
-    ips = [ worker_ip(28), worker_ip(29), worker_ip(30) ]
+    ips = [worker_ip(28), worker_ip(29), worker_ip(30)]
 
     ips.each_with_index do |ip, index|
       # Make several attempts for this IP

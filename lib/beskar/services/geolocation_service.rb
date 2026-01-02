@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 begin
-  require 'maxminddb'
+  require "maxminddb"
 rescue LoadError
   # MaxMindDB gem not available
 end
@@ -35,15 +35,15 @@ module Beskar
     class GeolocationService
       # Private/internal IP ranges that should not be geolocated
       PRIVATE_IP_RANGES = [
-        IPAddr.new('10.0.0.0/8'),      # RFC 1918 - Private networks
-        IPAddr.new('172.16.0.0/12'),   # RFC 1918 - Private networks
-        IPAddr.new('192.168.0.0/16'),  # RFC 1918 - Private networks
-        IPAddr.new('127.0.0.0/8'),     # Loopback
-        IPAddr.new('169.254.0.0/16'),  # Link-local
-        IPAddr.new('224.0.0.0/4'),     # Multicast
-        IPAddr.new('::1/128'),         # IPv6 loopback
-        IPAddr.new('fe80::/10'),       # IPv6 link-local
-        IPAddr.new('fc00::/7')         # IPv6 unique local
+        IPAddr.new("10.0.0.0/8"),      # RFC 1918 - Private networks
+        IPAddr.new("172.16.0.0/12"),   # RFC 1918 - Private networks
+        IPAddr.new("192.168.0.0/16"),  # RFC 1918 - Private networks
+        IPAddr.new("127.0.0.0/8"),     # Loopback
+        IPAddr.new("169.254.0.0/16"),  # Link-local
+        IPAddr.new("224.0.0.0/4"),     # Multicast
+        IPAddr.new("::1/128"),         # IPv6 loopback
+        IPAddr.new("fe80::/10"),       # IPv6 link-local
+        IPAddr.new("fc00::/7")         # IPv6 unique local
       ].freeze
 
       # Cache TTL for geolocation results (4 hours)
@@ -98,8 +98,8 @@ module Beskar
           dlat = lat2_rad - lat1_rad
           dlon = lon2_rad - lon1_rad
 
-          a = Math.sin(dlat/2)**2 + Math.cos(lat1_rad) * Math.cos(lat2_rad) * Math.sin(dlon/2)**2
-          c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+          a = Math.sin(dlat / 2)**2 + Math.cos(lat1_rad) * Math.cos(lat2_rad) * Math.sin(dlon / 2)**2
+          c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
           # Earth's radius in kilometers
           earth_radius = 6371.0
@@ -159,18 +159,18 @@ module Beskar
         end
 
         # Check cache first
-        if cached_result = get_cached_location(ip_address)
+        if (cached_result = get_cached_location(ip_address))
           return cached_result
         end
 
         # Perform lookup based on provider
-        case @provider
+        result = case @provider
         when :maxmind
-          result = lookup_maxmind(ip_address)
+          lookup_maxmind(ip_address)
         when :ip2location
-          result = lookup_ip2location(ip_address)
+          lookup_ip2location(ip_address)
         else
-          result = lookup_mock(ip_address)
+          lookup_mock(ip_address)
         end
 
         # Cache the result
@@ -235,7 +235,7 @@ module Beskar
         end
 
         # Known high-risk countries (this would be configurable in production)
-        high_risk_countries = ['Unknown']
+        high_risk_countries = ["Unknown"]
         risk += 15 if high_risk_countries.include?(current_location[:country])
 
         [risk, 30].min # Cap at 30 to leave room for other risk factors
@@ -285,27 +285,27 @@ module Beskar
       # @return [Hash] Mock location information
       def lookup_mock(ip_address)
         # Generate consistent mock data based on IP
-        country_codes = ['US', 'CA', 'GB', 'DE', 'FR', 'JP', 'AU']
-        cities = ['New York', 'Toronto', 'London', 'Berlin', 'Paris', 'Tokyo', 'Sydney']
+        country_codes = ["US", "CA", "GB", "DE", "FR", "JP", "AU"]
+        cities = ["New York", "Toronto", "London", "Berlin", "Paris", "Tokyo", "Sydney"]
 
         index = ip_address.bytes.sum % country_codes.length
 
         {
           ip: ip_address,
           country: case country_codes[index]
-                   when 'US' then 'United States'
-                   when 'CA' then 'Canada'
-                   when 'GB' then 'United Kingdom'
-                   when 'DE' then 'Germany'
-                   when 'FR' then 'France'
-                   when 'JP' then 'Japan'
-                   when 'AU' then 'Australia'
+                   when "US" then "United States"
+                   when "CA" then "Canada"
+                   when "GB" then "United Kingdom"
+                   when "DE" then "Germany"
+                   when "FR" then "France"
+                   when "JP" then "Japan"
+                   when "AU" then "Australia"
                    end,
           country_code: country_codes[index],
           city: cities[index],
           latitude: (40.0 + (index * 10)) % 90,
           longitude: (-74.0 + (index * 15)) % 180,
-          timezone: "UTC#{index > 3 ? '+' : '-'}#{index + 1}",
+          timezone: "UTC#{(index > 3) ? "+" : "-"}#{index + 1}",
           provider: @provider,
           private_ip: false
         }
@@ -316,10 +316,10 @@ module Beskar
       # @param ip_address [String] The IP address
       # @return [Hash] Location information from MaxMind
       def lookup_maxmind(ip_address)
-        result = { ip: ip_address, provider: @provider, private_ip: false }
+        result = {ip: ip_address, provider: @provider, private_ip: false}
 
         # Lookup city/location data
-        if city_reader = self.class.city_reader
+        if (city_reader = self.class.city_reader)
           begin
             city_data = city_reader.lookup(ip_address)
             if city_data&.found?

@@ -1,12 +1,12 @@
-require 'test_helper'
-require 'ostruct'
+require "test_helper"
+require "ostruct"
 
 class WardenSignoutTest < ActionDispatch::IntegrationTest
   setup do
     @user = DeviseUser.create!(
-      email: 'warden_test@example.com',
-      password: 'password123',
-      password_confirmation: 'password123'
+      email: "warden_test@example.com",
+      password: "password123",
+      password_confirmation: "password123"
     )
 
     # Configure for high-risk locking
@@ -15,7 +15,7 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
     Beskar.configuration.risk_based_locking[:enabled] = true
     Beskar.configuration.risk_based_locking[:risk_threshold] = 40  # Very sensitive
     Beskar.configuration.risk_based_locking[:log_lock_events] = true
-    
+
     Beskar::SecurityEvent.delete_all
   end
 
@@ -27,38 +27,38 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
   test "user_was_just_locked? detects recent lock events" do
     # Create a security event (simulating authentication)
     security_event = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "login_success",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 50
     )
 
     # Create a lock event
     @user.security_events.create!(
-      event_type: 'account_locked',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "account_locked",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85
     )
 
     # Should detect the recent lock
-    assert Beskar::Engine.user_was_just_locked?(@user, security_event), 
+    assert Beskar::Engine.user_was_just_locked?(@user, security_event),
       "Should detect lock event created within 10 seconds"
   end
 
   test "user_was_just_locked? ignores old lock events" do
     security_event = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "login_success",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 50
     )
 
     # Create an old lock event
     old_lock = @user.security_events.create!(
-      event_type: 'account_locked',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "account_locked",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85,
       created_at: 1.minute.ago
     )
@@ -75,16 +75,16 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
     Beskar.configuration.risk_based_locking[:enabled] = false
 
     security_event = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "login_success",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 50
     )
 
     @user.security_events.create!(
-      event_type: 'account_locked',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "account_locked",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85
     )
 
@@ -100,9 +100,9 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
   test "check_high_risk_lock_and_signout detects recent locks" do
     # Create recent lock event
     @user.security_events.create!(
-      event_type: 'account_locked',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "account_locked",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85
     )
 
@@ -124,9 +124,9 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
   test "check_high_risk_lock_and_signout ignores old locks" do
     # Create old lock event
     old_lock = @user.security_events.create!(
-      event_type: 'account_locked',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "account_locked",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85,
       created_at: 10.seconds.ago
     )
@@ -146,9 +146,9 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
 
     # Create recent lock
     @user.security_events.create!(
-      event_type: 'account_locked',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "account_locked",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85
     )
 
@@ -163,9 +163,9 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
   test "lock_attempted events also trigger signout" do
     # Even if lock fails, attempted lock should trigger signout
     @user.security_events.create!(
-      event_type: 'lock_attempted',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "lock_attempted",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 85
     )
 
@@ -183,18 +183,18 @@ class WardenSignoutTest < ActionDispatch::IntegrationTest
 
   test "multiple lock events within window all trigger detection" do
     security_event = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.1',
-      user_agent: 'Test',
+      event_type: "login_success",
+      ip_address: "203.0.113.1",
+      user_agent: "Test",
       risk_score: 50
     )
 
     # Create multiple lock events
     3.times do
       @user.security_events.create!(
-        event_type: 'account_locked',
-        ip_address: '203.0.113.1',
-        user_agent: 'Test',
+        event_type: "account_locked",
+        ip_address: "203.0.113.1",
+        user_agent: "Test",
         risk_score: 85
       )
     end

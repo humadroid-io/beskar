@@ -33,7 +33,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
   def teardown
     Rails.cache.clear
     Beskar::BannedIp.destroy_all
-    Beskar.configuration.waf = { enabled: false }
+    Beskar.configuration.waf = {enabled: false}
     Beskar.configuration.ip_whitelist = []
   end
 
@@ -42,15 +42,15 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     ip = worker_ip(1)
 
     # First violation - should not block yet (80 < 150)
-    get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+    get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
     assert_not Beskar::BannedIp.banned?(ip)
 
     # Second violation - should trigger block (80 + 80 = 160 > 150)
-    get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+    get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
 
     ban = Beskar::BannedIp.find_by(ip_address: ip)
     assert_not_nil ban
-    assert_equal 'waf_violation', ban.reason
+    assert_equal "waf_violation", ban.reason
     assert_equal 1, ban.violation_count
     assert_not_nil ban.expires_at
   end
@@ -61,7 +61,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     # Create initial temporary ban
     ban = Beskar::BannedIp.create!(
       ip_address: ip,
-      reason: 'waf_violation',
+      reason: "waf_violation",
       banned_at: Time.current,
       expires_at: Time.current + 1.hour,
       violation_count: 4 # Start at 4 violations
@@ -79,7 +79,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
   test "WAF creates security events with proper metadata" do
     ip = worker_ip(10)
 
-    assert_difference 'Beskar::SecurityEvent.count', 1 do
+    assert_difference "Beskar::SecurityEvent.count", 1 do
       get "/wp-admin/index.php?debug=true", headers: {
         "X-Forwarded-For" => ip,
         "User-Agent" => "MaliciousBot/1.0"
@@ -87,11 +87,11 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     end
 
     event = Beskar::SecurityEvent.last
-    assert_equal 'waf_violation', event.event_type
+    assert_equal "waf_violation", event.event_type
     assert_equal ip, event.ip_address
     assert_equal "MaliciousBot/1.0", event.user_agent
     assert event.risk_score >= 70
-    assert_not_nil event.metadata['waf_analysis']
+    assert_not_nil event.metadata["waf_analysis"]
   end
 
   test "WAF security events track multiple violations" do
@@ -101,13 +101,13 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     # Medium severity (/debug) = 60 points each, need 3 to exceed 150
     paths = ["/debug", "/telescope", "/__debug__"]
 
-    assert_difference 'Beskar::SecurityEvent.count', 3 do
+    assert_difference "Beskar::SecurityEvent.count", 3 do
       paths.each do |path|
-        get path, headers: { "X-Forwarded-For" => ip }
+        get path, headers: {"X-Forwarded-For" => ip}
       end
     end
 
-    events = Beskar::SecurityEvent.where(ip_address: ip, event_type: 'waf_violation')
+    events = Beskar::SecurityEvent.where(ip_address: ip, event_type: "waf_violation")
     assert_equal 3, events.count
   end
 
@@ -116,7 +116,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     ip = worker_ip(20)
 
     # Critical violation (.env file)
-    get "/.env", headers: { "X-Forwarded-For" => ip }
+    get "/.env", headers: {"X-Forwarded-For" => ip}
     critical_event = Beskar::SecurityEvent.last
 
     Rails.cache.clear
@@ -124,7 +124,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
 
     ip2 = worker_ip(21)
     # Medium violation (debug endpoint)
-    get "/rails/info/routes", headers: { "X-Forwarded-For" => ip2 }
+    get "/rails/info/routes", headers: {"X-Forwarded-For" => ip2}
     medium_event = Beskar::SecurityEvent.last
 
     assert critical_event.risk_score > medium_event.risk_score,
@@ -139,7 +139,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
 
     # Make many WAF violations
     10.times do
-      get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+      get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
     end
 
     # Should log violations
@@ -149,7 +149,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     assert_not Beskar::BannedIp.banned?(ip)
 
     # Should still be able to access site
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response :success
   end
 
@@ -161,7 +161,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
 
     ips.each do |ip|
       # Trigger violations
-      5.times { get "/wp-admin/", headers: { "X-Forwarded-For" => ip } }
+      5.times { get "/wp-admin/", headers: {"X-Forwarded-For" => ip} }
 
       # Should log
       assert Beskar::Services::Waf.get_violation_count(ip) > 0
@@ -179,7 +179,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     # Multiple IPs scanning for WordPress
     ips.each do |ip|
       ["/wp-admin/", "/wp-login.php", "/xmlrpc.php"].each do |path|
-        get path, headers: { "X-Forwarded-For" => ip }
+        get path, headers: {"X-Forwarded-For" => ip}
       end
     end
 
@@ -202,7 +202,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     ]
 
     config_files.each do |path|
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
     end
 
     # Should have tracked multiple violations (6 config file attempts)
@@ -224,7 +224,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     ]
 
     traversal_attempts.each do |path|
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
     end
 
     # Path traversal is critical (95 points), 2 violations = 190 > 150 threshold
@@ -239,28 +239,28 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
 
     # Make many critical violations
     10.times do
-      get "/.env", headers: { "X-Forwarded-For" => ip }
+      get "/.env", headers: {"X-Forwarded-For" => ip}
     end
 
     # Should log violations
     assert Beskar::Services::Waf.get_violation_count(ip) >= 3
 
     # Should create security events with monitor-only metadata
-    events = Beskar::SecurityEvent.where(ip_address: ip, event_type: 'waf_violation')
+    events = Beskar::SecurityEvent.where(ip_address: ip, event_type: "waf_violation")
     assert events.count > 0
 
     # Verify monitor-only metadata is present
     last_event = events.last
-    assert last_event.metadata['monitor_only_mode'], "Event should indicate monitor-only mode"
-    assert last_event.metadata['would_be_blocked'], "Event should indicate it would be blocked"
-    assert_equal Beskar.configuration.waf[:block_threshold], last_event.metadata['block_threshold']
-    assert last_event.metadata['violation_count'] >= 3
+    assert last_event.metadata["monitor_only_mode"], "Event should indicate monitor-only mode"
+    assert last_event.metadata["would_be_blocked"], "Event should indicate it would be blocked"
+    assert_equal Beskar.configuration.waf[:block_threshold], last_event.metadata["block_threshold"]
+    assert last_event.metadata["violation_count"] >= 3
 
     # Ban record should be created even in monitor mode
     assert Beskar::BannedIp.banned?(ip), "Ban record should exist in monitor mode"
 
     # But should still be able to access (not blocked)
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response :success, "Request should succeed in monitor mode despite ban"
   end
 
@@ -278,10 +278,10 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
 
     ban = Beskar::BannedIp.find_by(ip_address: ip)
     assert_not_nil ban
-    assert_equal 'waf_violation', ban.reason
+    assert_equal "waf_violation", ban.reason
     assert_match(/WordPress/, ban.details)
-    assert_not_nil ban.metadata['violation_count']
-    assert_not_nil ban.metadata['patterns']
+    assert_not_nil ban.metadata["violation_count"]
+    assert_not_nil ban.metadata["patterns"]
   end
 
   # Concurrent violations
@@ -291,7 +291,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     threads = []
     10.times do
       threads << Thread.new do
-        get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+        get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
       end
     end
 
@@ -319,7 +319,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     variations.each_with_index do |path, i|
       ip = worker_ip(80 + i)
 
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
 
       assert Beskar::Services::Waf.get_violation_count(ip) > 0,
         "Path #{path} should trigger WAF"
@@ -333,7 +333,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     # Simulate 100 requests
     100.times do |i|
       ip = "10.250.#{i / 256}.#{i % 256}"
-      get "/", headers: { "X-Forwarded-For" => ip }
+      get "/", headers: {"X-Forwarded-For" => ip}
     end
 
     elapsed = Time.now - start_time
@@ -349,13 +349,13 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     # Create expired ban
     Beskar::BannedIp.create!(
       ip_address: ip,
-      reason: 'waf_violation',
+      reason: "waf_violation",
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
 
     # Should not be blocked
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response :success
   end
 
@@ -365,7 +365,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     3.times do |i|
       Beskar::BannedIp.create!(
         ip_address: "10.251.0.#{i}",
-        reason: 'waf_violation',
+        reason: "waf_violation",
         banned_at: Time.current - 2.hours,
         expires_at: Time.current - 1.hour
       )
@@ -375,12 +375,12 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     active_ip = "10.251.0.100"
     Beskar::BannedIp.create!(
       ip_address: active_ip,
-      reason: 'waf_violation',
+      reason: "waf_violation",
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
 
-    assert_difference 'Beskar::BannedIp.count', -3 do
+    assert_difference "Beskar::BannedIp.count", -3 do
       Beskar::BannedIp.cleanup_expired!
     end
 
@@ -407,16 +407,16 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     ip = worker_ip(110)
 
     # This path should match multiple patterns (wordpress + path traversal)
-    get "/wp-admin/../../../etc/passwd", headers: { "X-Forwarded-For" => ip }
+    get "/wp-admin/../../../etc/passwd", headers: {"X-Forwarded-For" => ip}
 
     # Should detect at least one violation
     assert Beskar::Services::Waf.get_violation_count(ip) > 0,
       "Should detect WAF violations for malicious path"
 
     # Should create security event
-    event = Beskar::SecurityEvent.where(ip_address: ip, event_type: 'waf_violation').last
+    event = Beskar::SecurityEvent.where(ip_address: ip, event_type: "waf_violation").last
     assert_not_nil event, "Should create security event for WAF violation"
-    assert_not_nil event.metadata['waf_analysis'],
+    assert_not_nil event.metadata["waf_analysis"],
       "Security event should include WAF analysis metadata"
   end
 
@@ -424,7 +424,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
   test "WAF works with IPv6 addresses" do
     ip = "2001:db8::1"
 
-    get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+    get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
 
     assert Beskar::Services::Waf.get_violation_count(ip) > 0
   end
@@ -441,7 +441,7 @@ class WafIntegrationTest < ActionDispatch::IntegrationTest
     ]
 
     paths.each do |path|
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
     end
 
     # WordPress is high severity (80 points), 2 violations = 160 > 150 threshold

@@ -7,7 +7,7 @@ module Beskar
           patterns: [
             %r{/(?:users?|posts?|articles?|comments?|api/v\d+/\w+)/\d+\.(?:exe|bat|cmd|com|scr|vbs|jar|app|deb|rpm)$}i,  # Rails resources with executable extensions
             %r{/(?:users?|posts?|articles?|comments?|api/v\d+/\w+)\.(?:asp|aspx|jsp|do|action|cgi|pl|py|rb)$}i,  # Rails routes with server-side script extensions
-            %r{\?format=(?:exe|bat|cmd|com|scr|vbs|jar|asp|aspx|jsp|php)$}i,  # Suspicious format in query params
+            %r{\?format=(?:exe|bat|cmd|com|scr|vbs|jar|asp|aspx|jsp|php)$}i  # Suspicious format in query params
           ],
           severity: :medium,
           description: "Potential Rails exception triggering attempt"
@@ -15,7 +15,7 @@ module Beskar
         ip_spoofing: {
           patterns: [
             %r{X-Forwarded-For.*X-Forwarded-For}i,  # Multiple X-Forwarded-For headers in path (suspicious)
-            %r{Client-IP.*X-Forwarded-For}i,  # Conflicting IP headers in path
+            %r{Client-IP.*X-Forwarded-For}i  # Conflicting IP headers in path
           ],
           severity: :high,
           description: "Potential IP spoofing attempt"
@@ -24,7 +24,7 @@ module Beskar
           patterns: [
             %r{/(?:user|admin|account|profile|order|payment|invoice|document|file|download)/\d{6,}}i,  # Large IDs that likely don't exist
             %r{/(?:user|admin|account|profile)/(?:test|admin|root|administrator|superuser)}i,  # Common test usernames
-            %r{/api/v\d+/(?:users?|accounts?|orders?|payments?)/(?:999999|123456|0|null|undefined)}i,  # Obviously fake API IDs
+            %r{/api/v\d+/(?:users?|accounts?|orders?|payments?)/(?:999999|123456|0|null|undefined)}i  # Obviously fake API IDs
           ],
           severity: :low,
           description: "Potential record enumeration/scanning"
@@ -46,7 +46,7 @@ module Beskar
         wordpress_static: {
           patterns: [
             %r{/wp-content/.*\.(?:css|js|jpe?g|png|gif|svg|webp|ico|woff2?|ttf|eot|map)$}i,  # Static files in wp-content
-            %r{/wp-content/(?:uploads|themes|plugins)/[^.]*$}i,  # Directory listing attempts
+            %r{/wp-content/(?:uploads|themes|plugins)/[^.]*$}i  # Directory listing attempts
           ],
           severity: :low,
           description: "WordPress static file probe"
@@ -164,8 +164,6 @@ module Beskar
               user_agent: request.user_agent,
               timestamp: Time.current
             }
-          else
-            nil
           end
         end
 
@@ -245,8 +243,6 @@ module Beskar
               exception_class: exception.class.name,
               exception_message: exception.message
             }
-          else
-            nil
           end
         end
 
@@ -432,14 +428,14 @@ module Beskar
           }
 
           emoji = severity_emoji[analysis_result[:highest_severity]] || "🔍"
-          config = waf_config
+          waf_config
           monitor_mode_notice = Beskar.configuration.monitor_only? ? " [MONITOR-ONLY MODE]" : ""
 
           Beskar::Logger.warn("#{emoji} Vulnerability scan detected#{monitor_mode_notice} " \
             "(score: #{current_score.round(2)}, violations: #{violation_count}) - " \
             "IP: #{ip_address}, " \
             "Severity: #{analysis_result[:highest_severity]}, " \
-            "Patterns: #{analysis_result[:patterns].map { |p| p[:description] }.join(', ')}, " \
+            "Patterns: #{analysis_result[:patterns].map { |p| p[:description] }.join(", ")}, " \
             "Path: #{analysis_result[:patterns].first[:matched_path]}", component: :WAF)
         end
 
@@ -450,9 +446,9 @@ module Beskar
 
           Beskar::Logger.warn("🔍 MONITOR-ONLY: IP #{ip_address} WOULD BE BLOCKED " \
             "(score threshold reached: #{current_score.round(2)}/#{threshold}) - " \
-            "Duration would be: #{duration ? "#{duration / 3600.0} hours" : 'PERMANENT'}, " \
+            "Duration would be: #{duration ? "#{duration / 3600.0} hours" : "PERMANENT"}, " \
             "Severity: #{analysis_result[:highest_severity]}, " \
-            "Patterns: #{analysis_result[:patterns].map { |p| p[:description] }.join(', ')}. " \
+            "Patterns: #{analysis_result[:patterns].map { |p| p[:description] }.join(", ")}. " \
             "To enable blocking, set config.monitor_only = false", component: :WAF)
         end
 
@@ -464,7 +460,7 @@ module Beskar
           would_be_blocked = current_score >= threshold
 
           Beskar::SecurityEvent.create!(
-            event_type: 'waf_violation',
+            event_type: "waf_violation",
             ip_address: ip_address,
             user_agent: analysis_result[:user_agent],
             risk_score: severity_to_risk_score(analysis_result[:highest_severity]),
@@ -494,10 +490,10 @@ module Beskar
           begin
             banned_ip = Beskar::BannedIp.ban!(
               ip_address,
-              reason: 'waf_violation',
+              reason: "waf_violation",
               duration: duration,
               permanent: duration.nil?,
-              details: "WAF score: #{current_score.round(2)} (#{violation_count} violations) - #{analysis_result[:patterns].map { |p| p[:description] }.join(', ')}",
+              details: "WAF score: #{current_score.round(2)} (#{violation_count} violations) - #{analysis_result[:patterns].map { |p| p[:description] }.join(", ")}",
               metadata: {
                 violation_count: violation_count,
                 risk_score: current_score.round(2),
@@ -509,7 +505,7 @@ module Beskar
 
             Beskar::Logger.warn("🔒 Auto-blocked IP #{ip_address} " \
               "with score #{current_score.round(2)} (#{violation_count} violations) " \
-              "(duration: #{duration ? "#{duration / 3600} hours" : 'permanent'}), " \
+              "(duration: #{duration ? "#{duration / 3600} hours" : "permanent"}), " \
               "Ban ID: #{banned_ip.id}", component: :WAF)
           rescue => e
             Beskar::Logger.error("[WAF] Failed to create ban for #{ip_address}: #{e.class} - #{e.message}", component: :WAF)

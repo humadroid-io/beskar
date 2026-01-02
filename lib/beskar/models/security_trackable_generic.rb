@@ -71,10 +71,10 @@ module Beskar
           score += device_detector.calculate_user_agent_risk(request.user_agent)
 
           # Additional failure-specific risk factors
-          password = request.params.dig("user", "password") || 
-                     request.params.dig("devise_user", "password") ||
-                     request.params["password"]
-          
+          password = request.params.dig("user", "password") ||
+            request.params.dig("devise_user", "password") ||
+            request.params["password"]
+
           if password&.length.to_i > 50
             score += 10
             Beskar::Logger.info("Suspicious password length: #{password.length}, adding 10 risk")
@@ -103,7 +103,7 @@ module Beskar
           return
         end
 
-        event_type = result == :success ? "login_success" : "login_failure"
+        event_type = (result == :success) ? "login_success" : "login_failure"
 
         security_event = security_events.build(
           event_type: event_type,
@@ -139,7 +139,7 @@ module Beskar
         end
 
         # Queue background job for detailed analysis
-        Beskar::SecurityAnalysisJob.perform_later(self.id, "login_success") if defined?(Beskar::SecurityAnalysisJob)
+        Beskar::SecurityAnalysisJob.perform_later(id, "login_success") if defined?(Beskar::SecurityAnalysisJob)
       rescue => e
         Beskar::Logger.warn("Failed to queue security analysis: #{e.message}")
       end
@@ -174,7 +174,11 @@ module Beskar
 
       def extract_user_email
         # Try different email attribute names
-        respond_to?(:email) ? email : (respond_to?(:email_address) ? email_address : nil)
+        if respond_to?(:email)
+          email
+        else
+          (respond_to?(:email_address) ? email_address : nil)
+        end
       end
 
       def extract_security_context(request)
@@ -192,7 +196,7 @@ module Beskar
       end
 
       def calculate_risk_score(request, result)
-        base_score = result == :success ? 1 : 25
+        base_score = (result == :success) ? 1 : 25
         score = base_score
 
         # Use dedicated services for risk assessment
@@ -261,7 +265,7 @@ module Beskar
 
         if locker.lock_if_necessary!
           Beskar::Logger.warn("Account locked due to high risk score: #{security_event.risk_score}")
-          
+
           # Trigger auth-system-specific lock handling
           handle_high_risk_lock(security_event, request)
         end

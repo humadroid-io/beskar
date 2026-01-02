@@ -186,7 +186,7 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
           "User-Agent" => "DistributedBot/#{ip_index}",
           "X-Forwarded-For" => ip
         }
-        
+
         # Each request should fail authentication (422) since password is wrong
         assert_response :unprocessable_content
       end
@@ -204,11 +204,11 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     # while account-based tracking would aggregate across all IPs
     # The key point: distributed attacks try to evade IP-based rate limiting
     # by spreading attempts across multiple IPs
-    
+
     # Verify the attack succeeded in spreading load
     total_attempts = attack_ips.sum { |ip| Beskar::Services::RateLimiter.check_ip_rate_limit(ip)[:count] }
     assert_equal 9, total_attempts, "Total of 9 attempts across 3 IPs (3 each)"
-    
+
     # None of the individual IPs are blocked
     attack_ips.each do |ip|
       assert Beskar::Services::RateLimiter.check_ip_rate_limit(ip)[:allowed],
@@ -232,13 +232,13 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
       }
       responses << response.status
     end
-    
+
     # Verify the transition from auth failures to rate limiting
     # First requests return 422 (authentication failure)
     # After exceeding limit, middleware returns 429 (rate limited)
     assert_equal 422, responses.first, "First request should be auth failure (422)"
     assert_equal 429, responses.last, "After 15 attempts (>10 limit), should be rate limited (429)"
-    
+
     # Count the transition point (where 429 first appears)
     transition_index = responses.index(429)
     assert_not_nil transition_index, "Should transition to 429 at some point"
@@ -249,14 +249,14 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
     rate_check = Beskar::Services::RateLimiter.check_ip_rate_limit(ip_address)
     assert_equal false, rate_check[:allowed], "IP should be rate limited after 15 attempts"
     assert rate_check[:retry_after] > 0, "Should have positive retry_after time (got #{rate_check[:retry_after]})"
-    
+
     # Verify attempt count
     assert rate_check[:count] >= 10, "Should have recorded at least 10 attempts (got #{rate_check[:count]})"
-    
+
     # Test that backoff mechanism exists
     backoff_key = "beskar:ip_backoff:#{ip_address}"
     backoff_count = Rails.cache.read(backoff_key)
-    
+
     # After being rate limited, backoff tracking should be in place
     assert_not_nil backoff_count, "Backoff counter should exist for rate limited IP"
     assert backoff_count >= 0, "Backoff count should be non-negative (got #{backoff_count})"
@@ -280,7 +280,7 @@ class DeviseRateLimitingTest < ActionDispatch::IntegrationTest
       # First attempts return 422 (auth failure), later ones return 429 (rate limited)
       assert_includes [422, 429], response.status
     end
-    
+
     # Should transition from 422 to 429
     assert responses.first == 422, "First request should be auth failure (422)"
     assert responses.last == 429, "After exceeding limit, should be rate limited (429)"

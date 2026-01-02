@@ -35,13 +35,11 @@ module Beskar
     # Extend ban duration (for repeat offenders)
     def extend_ban!(additional_time = nil)
       self.violation_count += 1
-      
+
       if permanent?
         # Already permanent, just increment violation count
-        save!
       elsif additional_time
         self.expires_at = [expires_at || Time.current, Time.current].max + additional_time
-        save!
       else
         # Calculate exponential backoff based on violation count
         # 1 hour, 6 hours, 24 hours, 7 days, permanent
@@ -58,8 +56,8 @@ module Beskar
         if duration
           self.expires_at = Time.current + duration
         end
-        save!
       end
+      save!
     end
 
     # Unban an IP address
@@ -86,7 +84,6 @@ module Beskar
             if metadata.any?
               banned_ip.metadata = banned_ip.metadata.deep_stringify_keys.merge(metadata.deep_stringify_keys)
             end
-            banned_ip.save!
           else
             # New ban
             banned_ip.assign_attributes(
@@ -97,8 +94,8 @@ module Beskar
               details: details,
               metadata: metadata
             )
-            banned_ip.save!
           end
+          banned_ip.save!
 
           # Update cache
           cache_key = "beskar:banned_ip:#{ip_address}"

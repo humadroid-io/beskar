@@ -25,7 +25,7 @@ module Beskar
           return
         end
 
-        if current_request = request_from_context
+        if (current_request = request_from_context)
           track_authentication_event(current_request, :success)
         end
       rescue => e

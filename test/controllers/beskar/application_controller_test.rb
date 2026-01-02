@@ -39,7 +39,7 @@ module Beskar
     end
 
     test "denies access when custom authentication returns nil" do
-      Beskar.configuration.authenticate_admin = ->(_request) { nil }
+      Beskar.configuration.authenticate_admin = ->(_request) {}
 
       get "/beskar/dashboard"
 
@@ -84,21 +84,21 @@ module Beskar
     test "custom authentication can access request headers" do
       auth_header = nil
       Beskar.configuration.authenticate_admin = ->(request) do
-        auth_header = request.headers['Authorization']
-        auth_header == 'Bearer secret-token'
+        auth_header = request.headers["Authorization"]
+        auth_header == "Bearer secret-token"
       end
 
-      get "/beskar/dashboard", headers: { 'Authorization' => 'Bearer secret-token' }
+      get "/beskar/dashboard", headers: {"Authorization" => "Bearer secret-token"}
 
       assert_response :success
     end
 
     test "custom authentication denies access with invalid header" do
       Beskar.configuration.authenticate_admin = ->(request) do
-        request.headers['Authorization'] == 'Bearer secret-token'
+        request.headers["Authorization"] == "Bearer secret-token"
       end
 
-      get "/beskar/dashboard", headers: { 'Authorization' => 'Bearer wrong-token' }
+      get "/beskar/dashboard", headers: {"Authorization" => "Bearer wrong-token"}
 
       assert_response :not_found
     end
@@ -130,7 +130,7 @@ module Beskar
     end
 
     test "requires configuration regardless of environment" do
-      ['development', 'test', 'production'].each do |env|
+      ["development", "test", "production"].each do |env|
         original_env = Rails.env
         begin
           Rails.env = ActiveSupport::StringInquirer.new(env)
@@ -166,7 +166,7 @@ module Beskar
 
       assert_response :not_found
       json_response = JSON.parse(response.body)
-      assert_equal 'Not found', json_response['error']
+      assert_equal "Not found", json_response["error"]
     end
 
     # ===================
@@ -288,7 +288,7 @@ module Beskar
       time = Time.zone.parse("2025-01-15 14:30:00 UTC")
       formatted = controller.send(:format_timestamp, time)
 
-      assert_match /2025-01-15 14:30:00/, formatted
+      assert_match(/2025-01-15 14:30:00/, formatted)
     end
 
     test "format_timestamp helper handles nil" do
@@ -343,7 +343,7 @@ module Beskar
 
     test "pagination helper handles zero items" do
       controller = ApplicationController.new
-      controller.params = ActionController::Parameters.new({ page: '1' })
+      controller.params = ActionController::Parameters.new({page: "1"})
 
       # Create an empty collection
       collection = Beskar::SecurityEvent.none
@@ -361,26 +361,26 @@ module Beskar
       controller = ApplicationController.new
 
       # Test negative page number
-      controller.params = ActionController::Parameters.new({ page: '-1' })
+      controller.params = ActionController::Parameters.new({page: "-1"})
       collection = Beskar::SecurityEvent.all
 
       result = controller.send(:paginate, collection)
       assert_equal 1, result[:current_page]
 
       # Test zero page number
-      controller.params = ActionController::Parameters.new({ page: '0' })
+      controller.params = ActionController::Parameters.new({page: "0"})
       result = controller.send(:paginate, collection)
       assert_equal 1, result[:current_page]
 
       # Test non-numeric page (to_i returns 0, which gets reset to 1)
-      controller.params = ActionController::Parameters.new({ page: 'abc' })
+      controller.params = ActionController::Parameters.new({page: "abc"})
       result = controller.send(:paginate, collection)
       assert_equal 1, result[:current_page]
     end
 
     test "pagination helper enforces max per_page limit" do
       controller = ApplicationController.new
-      controller.params = ActionController::Parameters.new({ page: '1', per_page: '200' })
+      controller.params = ActionController::Parameters.new({page: "1", per_page: "200"})
 
       collection = Beskar::SecurityEvent.all
       result = controller.send(:paginate, collection)
@@ -392,13 +392,13 @@ module Beskar
       controller = ApplicationController.new
 
       # Test negative per_page
-      controller.params = ActionController::Parameters.new({ page: '1', per_page: '-10' })
+      controller.params = ActionController::Parameters.new({page: "1", per_page: "-10"})
       collection = Beskar::SecurityEvent.all
       result = controller.send(:paginate, collection)
       assert_equal 25, result[:per_page]
 
       # Test zero per_page
-      controller.params = ActionController::Parameters.new({ page: '1', per_page: '0' })
+      controller.params = ActionController::Parameters.new({page: "1", per_page: "0"})
       result = controller.send(:paginate, collection)
       assert_equal 25, result[:per_page]
     end
@@ -415,7 +415,7 @@ module Beskar
       assert_equal "192.168.1.1", result
 
       # Test with empty geolocation
-      result = controller.send(:format_ip_with_location, "192.168.1.1", { "geolocation" => {} })
+      result = controller.send(:format_ip_with_location, "192.168.1.1", {"geolocation" => {}})
       assert_equal "192.168.1.1", result
     end
 
@@ -423,17 +423,17 @@ module Beskar
       controller = ApplicationController.new
 
       # Only city
-      metadata = { "geolocation" => { "city" => "New York" } }
+      metadata = {"geolocation" => {"city" => "New York"}}
       result = controller.send(:format_ip_with_location, "192.168.1.1", metadata)
       assert_equal "192.168.1.1 (New York)", result
 
       # Only country
-      metadata = { "geolocation" => { "country" => "USA" } }
+      metadata = {"geolocation" => {"country" => "USA"}}
       result = controller.send(:format_ip_with_location, "192.168.1.1", metadata)
       assert_equal "192.168.1.1 (USA)", result
 
       # Both city and country
-      metadata = { "geolocation" => { "city" => "New York", "country" => "USA" } }
+      metadata = {"geolocation" => {"city" => "New York", "country" => "USA"}}
       result = controller.send(:format_ip_with_location, "192.168.1.1", metadata)
       assert_equal "192.168.1.1 (New York, USA)", result
     end
@@ -458,13 +458,7 @@ module Beskar
       call_count = 0
       Beskar.configuration.authenticate_admin = ->(_request) do
         call_count += 1
-        if call_count == 1
-          # Simulate config being reset mid-request (shouldn't happen in practice)
-          # but we want to ensure it doesn't crash
-          true
-        else
-          false
-        end
+        call_count == 1
       end
 
       get "/beskar/dashboard"
@@ -525,7 +519,7 @@ module Beskar
 
     test "pagination calculates correct offset for large page numbers" do
       controller = ApplicationController.new
-      controller.params = ActionController::Parameters.new({ page: '10', per_page: '25' })
+      controller.params = ActionController::Parameters.new({page: "10", per_page: "25"})
 
       collection = Beskar::SecurityEvent.all
       result = controller.send(:paginate, collection)
@@ -546,7 +540,7 @@ module Beskar
       get "/beskar/dashboard.json"
       assert_response :not_found
       json_response = JSON.parse(response.body)
-      assert_equal 'Not found', json_response['error']
+      assert_equal "Not found", json_response["error"]
     end
 
     test "custom authentication can return different values for same request path" do

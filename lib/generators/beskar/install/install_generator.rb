@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'rails/generators'
-require 'rails/generators/migration'
+require "rails/generators"
+require "rails/generators/migration"
 
 module Beskar
   module Generators
     class InstallGenerator < Rails::Generators::Base
       include Rails::Generators::Migration
 
-      source_root File.expand_path('templates', __dir__)
+      source_root File.expand_path("templates", __dir__)
 
       desc "Creates a Beskar initializer and runs migrations"
 
@@ -43,7 +43,7 @@ module Beskar
 
         if Dir.exist?(migration_source)
           Dir.glob("#{migration_source}/*.rb").each do |migration|
-            migration_name = File.basename(migration).sub(/^\d+_/, '')
+            migration_name = File.basename(migration).sub(/^\d+_/, "")
 
             # Check if migration already exists
             if migration_already_exists?(migration_name)

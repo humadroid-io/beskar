@@ -19,7 +19,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     assert banned_ip.persisted?
     assert_equal "192.168.1.100", banned_ip.ip_address
     assert_equal "test_ban", banned_ip.reason
@@ -27,14 +27,14 @@ class BannedIpTest < ActiveSupport::TestCase
 
   test "requires ip_address" do
     banned_ip = Beskar::BannedIp.new(reason: "test", banned_at: Time.current)
-    
+
     assert_not banned_ip.valid?
     assert_includes banned_ip.errors[:ip_address], "can't be blank"
   end
 
   test "requires reason" do
     banned_ip = Beskar::BannedIp.new(ip_address: "192.168.1.100", banned_at: Time.current)
-    
+
     assert_not banned_ip.valid?
     assert_includes banned_ip.errors[:reason], "can't be blank"
   end
@@ -45,13 +45,13 @@ class BannedIpTest < ActiveSupport::TestCase
       reason: "first",
       banned_at: Time.current
     )
-    
+
     duplicate = Beskar::BannedIp.new(
       ip_address: "192.168.1.100",
       reason: "second",
       banned_at: Time.current
     )
-    
+
     assert_not duplicate.valid?
     assert_includes duplicate.errors[:ip_address], "has already been taken"
   end
@@ -64,23 +64,23 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     expired_ban = Beskar::BannedIp.create!(
       ip_address: "10.0.0.2",
       reason: "expired",
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
+
     permanent_ban = Beskar::BannedIp.create!(
       ip_address: "10.0.0.3",
       reason: "permanent",
       banned_at: Time.current,
       permanent: true
     )
-    
+
     active_bans = Beskar::BannedIp.active
-    
+
     assert_includes active_bans, active_ban
     assert_includes active_bans, permanent_ban
     assert_not_includes active_bans, expired_ban
@@ -93,16 +93,16 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       permanent: true
     )
-    
+
     temporary = Beskar::BannedIp.create!(
       ip_address: "10.0.0.11",
       reason: "temporary",
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     permanent_bans = Beskar::BannedIp.permanent
-    
+
     assert_includes permanent_bans, permanent
     assert_not_includes permanent_bans, temporary
   end
@@ -114,16 +114,16 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
+
     active = Beskar::BannedIp.create!(
       ip_address: "10.0.0.21",
       reason: "active",
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     expired_bans = Beskar::BannedIp.expired
-    
+
     assert_includes expired_bans, expired
     assert_not_includes expired_bans, active
   end
@@ -136,7 +136,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     assert ban.active?
   end
 
@@ -147,7 +147,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
+
     assert_not ban.active?
   end
 
@@ -158,7 +158,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       permanent: true
     )
-    
+
     assert ban.active?
   end
 
@@ -169,7 +169,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
+
     assert ban.expired?
   end
 
@@ -180,7 +180,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     assert_not ban.expired?
   end
 
@@ -191,7 +191,7 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       permanent: true
     )
-    
+
     assert_not ban.expired?
   end
 
@@ -204,11 +204,11 @@ class BannedIpTest < ActiveSupport::TestCase
       expires_at: Time.current + 1.hour,
       violation_count: 1
     )
-    
+
     assert_equal 1, ban.violation_count
-    
+
     ban.extend_ban!
-    
+
     assert_equal 2, ban.reload.violation_count
   end
 
@@ -219,11 +219,11 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     original_expiry = ban.expires_at
-    
+
     ban.extend_ban!(2.hours)
-    
+
     assert ban.reload.expires_at > original_expiry
   end
 
@@ -235,24 +235,24 @@ class BannedIpTest < ActiveSupport::TestCase
       expires_at: Time.current + 1.hour,
       violation_count: 4
     )
-    
+
     assert_not ban.permanent?
-    
+
     ban.extend_ban! # This should make it permanent (violation 5)
-    
+
     assert ban.reload.permanent?
   end
 
   # Class methods - ban!
   test "ban! creates new ban" do
-    assert_difference 'Beskar::BannedIp.count', 1 do
+    assert_difference "Beskar::BannedIp.count", 1 do
       Beskar::BannedIp.ban!(
         "10.0.0.50",
         reason: "test_reason",
         duration: 1.hour
       )
     end
-    
+
     ban = Beskar::BannedIp.last
     assert_equal "10.0.0.50", ban.ip_address
     assert_equal "test_reason", ban.reason
@@ -266,15 +266,15 @@ class BannedIpTest < ActiveSupport::TestCase
       expires_at: Time.current + 1.hour,
       violation_count: 1
     )
-    
-    assert_no_difference 'Beskar::BannedIp.count' do
+
+    assert_no_difference "Beskar::BannedIp.count" do
       Beskar::BannedIp.ban!(
         "10.0.0.51",
         reason: "extended",
         duration: 2.hours
       )
     end
-    
+
     existing.reload
     assert_equal 2, existing.violation_count
   end
@@ -285,22 +285,22 @@ class BannedIpTest < ActiveSupport::TestCase
       reason: "serious_violation",
       permanent: true
     )
-    
+
     ban = Beskar::BannedIp.find_by(ip_address: "10.0.0.52")
     assert ban.permanent?
     assert_nil ban.expires_at
   end
 
   test "ban! stores metadata" do
-    metadata = { user_agent: "BadBot/1.0", path: "/wp-admin" }
-    
+    metadata = {user_agent: "BadBot/1.0", path: "/wp-admin"}
+
     Beskar::BannedIp.ban!(
       "10.0.0.53",
       reason: "waf_violation",
       duration: 1.hour,
       metadata: metadata
     )
-    
+
     ban = Beskar::BannedIp.find_by(ip_address: "10.0.0.53")
     assert_equal "BadBot/1.0", ban.metadata["user_agent"]
     assert_equal "/wp-admin", ban.metadata["path"]
@@ -324,16 +324,14 @@ class BannedIpTest < ActiveSupport::TestCase
     # Simulate race condition with actual threads
     threads = 3.times.map do |i|
       Thread.new do
-        begin
-          result = Beskar::BannedIp.ban!(
-            ip,
-            reason: "thread_#{i}",
-            duration: 1.hour
-          )
-          results << result
-        rescue => e
-          errors << e
-        end
+        result = Beskar::BannedIp.ban!(
+          ip,
+          reason: "thread_#{i}",
+          duration: 1.hour
+        )
+        results << result
+      rescue => e
+        errors << e
       end
     end
 
@@ -359,13 +357,11 @@ class BannedIpTest < ActiveSupport::TestCase
     # Create concurrent bans for different IPs
     threads = 5.times.map do |i|
       Thread.new do
-        begin
-          ip = "10.0.0.#{60 + i}"
-          result = Beskar::BannedIp.ban!(ip, reason: "concurrent_test", duration: 1.hour)
-          results << result
-        rescue => e
-          errors << e
-        end
+        ip = "10.0.0.#{60 + i}"
+        result = Beskar::BannedIp.ban!(ip, reason: "concurrent_test", duration: 1.hour)
+        results << result
+      rescue => e
+        errors << e
       end
     end
 
@@ -383,7 +379,7 @@ class BannedIpTest < ActiveSupport::TestCase
   test "banned? returns true for banned IP" do
     ip = "10.0.0.60"
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
-    
+
     assert Beskar::BannedIp.banned?(ip)
   end
 
@@ -399,17 +395,17 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
+
     assert_not Beskar::BannedIp.banned?(ip)
   end
 
   test "banned? uses cache for performance" do
     ip = "10.0.0.63"
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
-    
+
     # First call queries database and sets cache
     assert Beskar::BannedIp.banned?(ip)
-    
+
     # Second call should use cache
     Beskar::BannedIp.expects(:find_by).never
     assert Beskar::BannedIp.banned?(ip)
@@ -417,10 +413,10 @@ class BannedIpTest < ActiveSupport::TestCase
 
   test "banned? caches negative results" do
     ip = "10.0.0.64"
-    
+
     # First call queries database and sets cache (false)
     assert_not Beskar::BannedIp.banned?(ip)
-    
+
     # Cache should be set to false
     cache_key = "beskar:banned_ip:#{ip}"
     assert_equal false, Rails.cache.read(cache_key)
@@ -430,14 +426,14 @@ class BannedIpTest < ActiveSupport::TestCase
   test "unban! removes ban and clears cache" do
     ip = "10.0.0.70"
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
-    
+
     assert Beskar::BannedIp.banned?(ip)
-    
-    assert_difference 'Beskar::BannedIp.count', -1 do
+
+    assert_difference "Beskar::BannedIp.count", -1 do
       result = Beskar::BannedIp.unban!(ip)
       assert result
     end
-    
+
     assert_not Beskar::BannedIp.banned?(ip)
   end
 
@@ -449,35 +445,35 @@ class BannedIpTest < ActiveSupport::TestCase
   # Class methods - preload_cache!
   test "preload_cache! loads all active bans into cache" do
     Rails.cache.clear
-    
+
     # Create some bans
-    active1 = Beskar::BannedIp.create!(
+    Beskar::BannedIp.create!(
       ip_address: "10.0.0.80",
       reason: "test",
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
-    active2 = Beskar::BannedIp.create!(
+
+    Beskar::BannedIp.create!(
       ip_address: "10.0.0.81",
       reason: "test",
       banned_at: Time.current,
       permanent: true
     )
-    
-    expired = Beskar::BannedIp.create!(
+
+    Beskar::BannedIp.create!(
       ip_address: "10.0.0.82",
       reason: "test",
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
+
     Beskar::BannedIp.preload_cache!
-    
+
     # Active bans should be in cache
     assert Rails.cache.read("beskar:banned_ip:10.0.0.80")
     assert Rails.cache.read("beskar:banned_ip:10.0.0.81")
-    
+
     # Expired ban should not be in cache
     assert_not Rails.cache.read("beskar:banned_ip:10.0.0.82")
   end
@@ -490,25 +486,25 @@ class BannedIpTest < ActiveSupport::TestCase
       banned_at: Time.current,
       expires_at: Time.current + 1.hour
     )
-    
+
     expired1 = Beskar::BannedIp.create!(
       ip_address: "10.0.0.91",
       reason: "test",
       banned_at: Time.current - 3.hours,
       expires_at: Time.current - 2.hours
     )
-    
+
     expired2 = Beskar::BannedIp.create!(
       ip_address: "10.0.0.92",
       reason: "test",
       banned_at: Time.current - 2.hours,
       expires_at: Time.current - 1.hour
     )
-    
-    assert_difference 'Beskar::BannedIp.count', -2 do
+
+    assert_difference "Beskar::BannedIp.count", -2 do
       Beskar::BannedIp.cleanup_expired!
     end
-    
+
     assert Beskar::BannedIp.exists?(active.id)
     assert_not Beskar::BannedIp.exists?(expired1.id)
     assert_not Beskar::BannedIp.exists?(expired2.id)
@@ -520,9 +516,9 @@ class BannedIpTest < ActiveSupport::TestCase
       ip_address: "10.0.0.100",
       reason: "test",
       banned_at: Time.current,
-      metadata: { key: "value", nested: { data: "test" } }
+      metadata: {key: "value", nested: {data: "test"}}
     )
-    
+
     ban.reload
     assert_equal "value", ban.metadata["key"]
     assert_equal "test", ban.metadata["nested"]["data"]
@@ -534,7 +530,7 @@ class BannedIpTest < ActiveSupport::TestCase
       reason: "test",
       banned_at: Time.current
     )
-    
+
     assert_equal Hash, ban.metadata.class
     assert ban.metadata.empty?
   end

@@ -39,7 +39,7 @@ module Beskar
     end
 
     def permanent_ban?
-      @params[:ban_type] == 'permanent'
+      @params[:ban_type] == "permanent"
     end
 
     def set_permanent_ban

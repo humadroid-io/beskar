@@ -30,7 +30,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   def teardown
     Rails.cache.clear
     Beskar::BannedIp.destroy_all
-    Beskar.configuration.waf = { enabled: false }
+    Beskar.configuration.waf = {enabled: false}
     Beskar.configuration.ip_whitelist = []
   end
 
@@ -39,7 +39,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     ip = worker_ip(1)
     Beskar::BannedIp.ban!(ip, reason: "test_ban", duration: 1.hour)
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert_response 403
     assert_match(/blocked/i, response.body)
@@ -48,7 +48,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   test "middleware allows requests from non-banned IPs" do
     ip = worker_ip(2)
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert_response :success
   end
@@ -62,7 +62,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
       expires_at: Time.current - 1.hour
     )
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert_response :success
   end
@@ -70,12 +70,12 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   # IP Whitelist functionality
   test "whitelisted IPs bypass banned IP check" do
     ip = worker_ip(10)
-    Beskar.configuration.ip_whitelist = [ ip ]
+    Beskar.configuration.ip_whitelist = [ip]
     Beskar::Services::IpWhitelist.clear_cache!
 
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     # Should allow through despite ban
     assert_response :success
@@ -83,39 +83,39 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
   test "whitelisted IPs bypass rate limiting" do
     ip = worker_ip(11)
-    Beskar.configuration.ip_whitelist = [ ip ]
+    Beskar.configuration.ip_whitelist = [ip]
     Beskar::Services::IpWhitelist.clear_cache!
 
     # Make many requests (should exceed rate limit)
     15.times do |i|
-      get "/devise_users/sign_in", headers: { "X-Forwarded-For" => ip }
+      get "/devise_users/sign_in", headers: {"X-Forwarded-For" => ip}
     end
 
     # Should still be allowed
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response :success
   end
 
   test "whitelisted CIDR range bypasses blocking" do
-    Beskar.configuration.ip_whitelist = [ "10.50.0.0/24" ]
+    Beskar.configuration.ip_whitelist = ["10.50.0.0/24"]
     Beskar::Services::IpWhitelist.clear_cache!
 
     ip = "10.50.0.100"
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert_response :success
   end
 
   test "whitelisted IPs are still logged for WAF violations" do
     ip = worker_ip(12)
-    Beskar.configuration.ip_whitelist = [ ip ]
+    Beskar.configuration.ip_whitelist = [ip]
     Beskar::Services::IpWhitelist.clear_cache!
     Beskar.configuration.waf[:enabled] = true
 
     # Make WAF violation
-    get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+    get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
 
     # Should log but not block
     violation_count = Beskar::Services::Waf.get_violation_count(ip)
@@ -131,11 +131,11 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Make 3 violations to reach threshold
     3.times do
-      get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+      get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
     end
 
     # Next request should be blocked (either by middleware or already banned)
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     # Should be blocked
     assert Beskar::BannedIp.banned?(ip), "IP should be banned after WAF threshold"
@@ -149,14 +149,14 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Make multiple WAF violations
     5.times do
-      get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+      get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
     end
 
     # Ban record should be created even in monitor mode
     assert Beskar::BannedIp.banned?(ip), "Ban record should exist in monitor mode"
 
     # But requests should still succeed (not blocked)
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response :success, "Request should succeed in monitor mode despite ban"
 
     # But violations should be logged
@@ -166,10 +166,10 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   test "WAF detects WordPress scans" do
     ip = worker_ip(22)
 
-    paths = [ "/wp-admin/", "/wp-login.php", "/xmlrpc.php" ]
+    paths = ["/wp-admin/", "/wp-login.php", "/xmlrpc.php"]
 
     paths.each do |path|
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
 
       # Each request increments violation count
       assert Beskar::Services::Waf.get_violation_count(ip) > 0
@@ -179,10 +179,10 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   test "WAF detects config file access attempts" do
     ip = worker_ip(23)
 
-    paths = [ "/.env", "/.git/config", "/config.php" ]
+    paths = ["/.env", "/.git/config", "/config.php"]
 
     paths.each do |path|
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
     end
 
     # Config files are critical (95 points), 2 violations = 190 > 150 threshold
@@ -194,7 +194,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   test "WAF detects path traversal attempts" do
     ip = worker_ip(24)
 
-    get "/files/../../etc/passwd", headers: { "X-Forwarded-For" => ip }
+    get "/files/../../etc/passwd", headers: {"X-Forwarded-For" => ip}
 
     assert Beskar::Services::Waf.get_violation_count(ip) > 0
   end
@@ -202,10 +202,10 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   test "WAF allows legitimate requests" do
     ip = worker_ip(25)
 
-    legitimate_paths = [ "/", "/users", "/posts/123", "/about" ]
+    legitimate_paths = ["/", "/users", "/posts/123", "/about"]
 
     legitimate_paths.each do |path|
-      get path, headers: { "X-Forwarded-For" => ip }
+      get path, headers: {"X-Forwarded-For" => ip}
     end
 
     # Should not increment WAF violations
@@ -229,7 +229,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     Rails.cache.write(cache_key, failures, expires_in: 1.hour)
 
     # Next request should detect brute force and block
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     # Should be auto-banned for authentication abuse
     assert Beskar::BannedIp.banned?(ip), "IP should be banned after authentication brute force"
@@ -253,7 +253,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     Rails.cache.write(cache_key, failures, expires_in: 1.hour)
 
     # Should still block for auth abuse
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert Beskar::BannedIp.banned?(ip), "Should block auth abuse even when WAF is disabled"
   end
@@ -278,7 +278,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Make actual requests to trigger middleware blocking logic
     6.times do
-      get "/", headers: { "X-Forwarded-For" => ip }
+      get "/", headers: {"X-Forwarded-For" => ip}
     end
 
     # Eventually should be banned due to rate limit abuse
@@ -293,7 +293,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
 
     # Try to make request (should be blocked before rate limit check)
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert_response 403
     assert_match(/blocked/i, response.body)
@@ -301,7 +301,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
   test "whitelisted IPs skip all blocking checks" do
     ip = worker_ip(41)
-    Beskar.configuration.ip_whitelist = [ ip ]
+    Beskar.configuration.ip_whitelist = [ip]
     Beskar::Services::IpWhitelist.clear_cache!
 
     # Ban the IP
@@ -309,14 +309,14 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Exceed rate limit
     15.times do |i|
-      get "/devise_users/sign_in", headers: { "X-Forwarded-For" => ip }
+      get "/devise_users/sign_in", headers: {"X-Forwarded-For" => ip}
     end
 
     # Make WAF violation
-    get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+    get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
 
     # Should still be allowed
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response :success
   end
 
@@ -325,7 +325,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     ip = worker_ip(50)
     Beskar::BannedIp.ban!(ip, reason: "test", duration: 1.hour)
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     assert_equal "true", response.headers["X-Beskar-Blocked"]
   end
@@ -341,7 +341,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
       )
     end
 
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
 
     # Should be rate limited at middleware level
     assert_equal 429, response.status, "Should return 429 after exceeding rate limit"
@@ -354,7 +354,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     Beskar.configuration.waf[:create_security_events] = true
 
     assert_difference "Beskar::SecurityEvent.count", 1 do
-      get "/wp-admin/", headers: { "X-Forwarded-For" => ip }
+      get "/wp-admin/", headers: {"X-Forwarded-For" => ip}
     end
 
     event = Beskar::SecurityEvent.last
@@ -372,7 +372,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
   end
 
   test "handles invalid IP addresses gracefully" do
-    get "/", headers: { "X-Forwarded-For" => "invalid-ip" }
+    get "/", headers: {"X-Forwarded-For" => "invalid-ip"}
 
     # Should not crash
     assert_response :success
@@ -387,7 +387,7 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
 
     # Make 5 requests from the same IP
     5.times do
-      get "/devise_users/sign_in", headers: { "X-Forwarded-For" => ip }
+      get "/devise_users/sign_in", headers: {"X-Forwarded-For" => ip}
       results << response.status
     end
 
@@ -420,14 +420,14 @@ class MiddlewareBlockingTest < ActionDispatch::IntegrationTest
     Beskar::BannedIp.preload_cache!
 
     # Should be blocked
-    get "/", headers: { "X-Forwarded-For" => ip }
+    get "/", headers: {"X-Forwarded-For" => ip}
     assert_response 403
   end
 
   private
 
   def mock_request(ip)
-    mock_req = mock()
+    mock_req = mock
     mock_req.stubs(:ip).returns(ip)
     mock_req.stubs(:user_agent).returns("TestBot")
     mock_req

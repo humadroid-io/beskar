@@ -1,5 +1,5 @@
-require 'test_helper'
-require 'ostruct'
+require "test_helper"
+require "ostruct"
 
 class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
   def setup
@@ -73,12 +73,12 @@ class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
     assert_equal 2, Beskar::SecurityEvent.count
 
     # Find the exception-based event
-    exception_event = Beskar::SecurityEvent.find { |e| e.metadata['waf_analysis']['exception_class'].present? }
+    exception_event = Beskar::SecurityEvent.find { |e| e.metadata["waf_analysis"]["exception_class"].present? }
     assert_not_nil exception_event
-    assert_equal 'waf_violation', exception_event.event_type
-    assert_equal '192.168.1.100', exception_event.ip_address
+    assert_equal "waf_violation", exception_event.event_type
+    assert_equal "192.168.1.100", exception_event.ip_address
     assert_equal 60, exception_event.risk_score # Medium severity
-    assert_equal 'ActionController::UnknownFormat', exception_event.metadata['waf_analysis']['exception_class']
+    assert_equal "ActionController::UnknownFormat", exception_event.metadata["waf_analysis"]["exception_class"]
   end
 
   test "middleware catches IP spoofing exception as critical threat" do
@@ -99,9 +99,9 @@ class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
 
     # Verify critical severity was recorded
     event = Beskar::SecurityEvent.last
-    assert_equal 'waf_violation', event.event_type
+    assert_equal "waf_violation", event.event_type
     assert_equal 95, event.risk_score # Critical severity
-    assert_equal 'ActionDispatch::RemoteIp::IpSpoofAttackError', event.metadata['waf_analysis']['exception_class']
+    assert_equal "ActionDispatch::RemoteIp::IpSpoofAttackError", event.metadata["waf_analysis"]["exception_class"]
   end
 
   test "middleware catches RecordNotFound and respects exclusion patterns" do
@@ -133,7 +133,7 @@ class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
 
     event = Beskar::SecurityEvent.last
     assert_equal 30, event.risk_score # Low severity
-    assert_equal 'ActiveRecord::RecordNotFound', event.metadata['waf_analysis']['exception_class']
+    assert_equal "ActiveRecord::RecordNotFound", event.metadata["waf_analysis"]["exception_class"]
   end
 
   test "accumulating exception violations triggers auto-block" do
@@ -157,8 +157,8 @@ class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
     # IP should be banned after 3 violations
     assert Beskar::BannedIp.banned?(attacker_ip)
     banned = Beskar::BannedIp.find_by(ip_address: attacker_ip)
-    assert_equal 'waf_violation', banned.reason
-    assert_includes banned.details, 'Unknown format requested'
+    assert_equal "waf_violation", banned.reason
+    assert_includes banned.details, "Unknown format requested"
 
     # Next request should be blocked (not just exception raised)
     normal_app = ->(_env) { [200, {}, ["OK"]] }
@@ -212,7 +212,7 @@ class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
     # Check that events have monitor-only flag
     events = Beskar::SecurityEvent.where(ip_address: attacker_ip)
     events.each do |event|
-      assert event.metadata['monitor_only_mode']
+      assert event.metadata["monitor_only_mode"]
     end
   end
 
@@ -327,8 +327,8 @@ class WafExceptionIntegrationTest < ActionDispatch::IntegrationTest
 
     # Verify we have both types of violations
     events = Beskar::SecurityEvent.where(ip_address: attacker_ip)
-    exception_events = events.select { |e| e.metadata['waf_analysis']['exception_class'].present? }
-    regular_events = events.select { |e| e.metadata['waf_analysis']['exception_class'].nil? }
+    exception_events = events.select { |e| e.metadata["waf_analysis"]["exception_class"].present? }
+    regular_events = events.select { |e| e.metadata["waf_analysis"]["exception_class"].nil? }
 
     assert_equal 1, exception_events.count
     assert_equal 2, regular_events.count

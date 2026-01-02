@@ -199,7 +199,7 @@ class DeviseAttackPatternsTest < ActionDispatch::IntegrationTest
     recent_events = Beskar::SecurityEvent.where(user: @target_user).order(:created_at)
     assert recent_events.count >= 1,
       "Should have at least one security event for location change"
-    
+
     last_event = recent_events.last
     assert_not_nil last_event, "Should have a security event"
     # Location changes can elevate risk scores

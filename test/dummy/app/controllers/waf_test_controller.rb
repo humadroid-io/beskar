@@ -7,7 +7,7 @@ class WafTestController < ApplicationController
       path: request.path,
       ip: request.ip,
       remote_ip: request.remote_ip,
-      x_forwarded_for: request.headers['X-Forwarded-For'],
+      x_forwarded_for: request.headers["X-Forwarded-For"],
       violation_count: Beskar::Services::Waf.get_violation_count(request.ip),
       is_banned: Beskar::BannedIp.banned?(request.ip),
       message: "WordPress vulnerability scan pattern triggered"
@@ -35,7 +35,7 @@ class WafTestController < ApplicationController
     banned_record = Beskar::BannedIp.find_by(ip_address: ip)
 
     # Get security events
-    security_events = Beskar::SecurityEvent.where(ip_address: ip, event_type: 'waf_violation')
+    security_events = Beskar::SecurityEvent.where(ip_address: ip, event_type: "waf_violation")
       .order(created_at: :desc)
       .limit(10)
 
@@ -53,9 +53,9 @@ class WafTestController < ApplicationController
         fullpath: request.fullpath,
         user_agent: request.user_agent,
         headers: {
-          x_forwarded_for: request.headers['X-Forwarded-For'],
-          x_real_ip: request.headers['X-Real-IP'],
-          remote_addr: request.headers['REMOTE_ADDR']
+          x_forwarded_for: request.headers["X-Forwarded-For"],
+          x_real_ip: request.headers["X-Real-IP"],
+          remote_addr: request.headers["REMOTE_ADDR"]
         }
       },
       waf_status: {
@@ -88,9 +88,9 @@ class WafTestController < ApplicationController
           {
             created_at: event.created_at,
             risk_score: event.risk_score,
-            would_be_blocked: event.metadata['would_be_blocked'],
-            violation_count: event.metadata['violation_count'],
-            patterns_matched: event.metadata['patterns_matched']
+            would_be_blocked: event.metadata["would_be_blocked"],
+            violation_count: event.metadata["violation_count"],
+            patterns_matched: event.metadata["patterns_matched"]
           }
         end
       }
@@ -134,10 +134,10 @@ class WafTestController < ApplicationController
     count.times do |i|
       # Create mock request
       mock_request = OpenStruct.new(
-        fullpath: '/wp-admin.php',
-        path: '/wp-admin.php',
+        fullpath: "/wp-admin.php",
+        path: "/wp-admin.php",
         ip: ip,
-        user_agent: request.user_agent || 'Test Agent'
+        user_agent: request.user_agent || "Test Agent"
       )
 
       # Analyze request
@@ -181,7 +181,7 @@ class WafTestController < ApplicationController
     # This should go through the middleware and trigger WAF
     render json: {
       message: "This request went through the middleware",
-      middleware_stack: Rails.application.config.middleware.map(&:to_s).select { |m| m.include?('Beskar') },
+      middleware_stack: Rails.application.config.middleware.map(&:to_s).select { |m| m.include?("Beskar") },
       ip: request.ip,
       path: request.path
     }

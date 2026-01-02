@@ -1,4 +1,4 @@
-require 'ipaddr'
+require "ipaddr"
 
 module Beskar
   module Services
@@ -15,7 +15,7 @@ module Beskar
           whitelist_entries.any? do |entry|
             match_entry?(ip, entry)
           end
-        rescue IPAddr::InvalidAddressError, ArgumentError => e
+        rescue ArgumentError => e
           Beskar::Logger.warn("Invalid IP address: #{ip_address} - #{e.message}", component: :IpWhitelist)
           false
         end
@@ -39,13 +39,11 @@ module Beskar
         # Validate whitelist configuration
         def validate_configuration!
           errors = []
-          
+
           whitelist_entries.each_with_index do |entry, index|
-            begin
-              parse_entry(entry)
-            rescue IPAddr::InvalidAddressError, ArgumentError => e
-              errors << "Entry #{index} (#{entry}): #{e.message}"
-            end
+            parse_entry(entry)
+          rescue ArgumentError => e
+            errors << "Entry #{index} (#{entry}): #{e.message}"
           end
 
           if errors.any?
@@ -67,16 +65,15 @@ module Beskar
         # Parse whitelist entry (can be single IP or CIDR notation)
         def parse_entry(entry)
           return nil if entry.blank?
-          
+
           entry_str = entry.to_s.strip
-          
+
           # Check if it's CIDR notation
-          if entry_str.include?('/')
-            IPAddr.new(entry_str)
+          if entry_str.include?("/")
           else
             # Single IP address
-            IPAddr.new(entry_str)
           end
+          IPAddr.new(entry_str)
         end
 
         # Check if IP matches whitelist entry
@@ -86,7 +83,7 @@ module Beskar
 
           # IPAddr#include? handles both single IPs and CIDR ranges
           parsed_entry.include?(ip)
-        rescue IPAddr::InvalidAddressError, ArgumentError
+        rescue ArgumentError
           false
         end
 
@@ -95,11 +92,9 @@ module Beskar
           @parsed_entries ||= begin
             entries = {}
             whitelist_entries.each do |entry|
-              begin
-                entries[entry] = parse_entry(entry)
-              rescue IPAddr::InvalidAddressError, ArgumentError => e
-                Beskar::Logger.warn("Skipping invalid entry: #{entry} - #{e.message}", component: :IpWhitelist)
-              end
+              entries[entry] = parse_entry(entry)
+            rescue ArgumentError => e
+              Beskar::Logger.warn("Skipping invalid entry: #{entry} - #{e.message}", component: :IpWhitelist)
             end
             entries
           end

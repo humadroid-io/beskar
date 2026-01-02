@@ -1,4 +1,4 @@
-require 'csv'
+require "csv"
 
 module Beskar
   class BannedIpsController < ApplicationController
@@ -16,7 +16,7 @@ module Beskar
 
       # Get filter options
       @ban_reasons = Beskar::BannedIp.distinct.pluck(:reason).compact.sort
-      @ban_statuses = ['active', 'expired', 'permanent', 'temporary']
+      @ban_statuses = ["active", "expired", "permanent", "temporary"]
     end
 
     def show
@@ -48,7 +48,7 @@ module Beskar
 
       if manager.success?
         redirect_to banned_ip_path(manager.banned_ip),
-                    notice: "IP address #{manager.banned_ip.ip_address} has been banned successfully."
+          notice: "IP address #{manager.banned_ip.ip_address} has been banned successfully."
       else
         @banned_ip = manager.banned_ip
         render :new
@@ -61,7 +61,7 @@ module Beskar
     def update
       if @banned_ip.update(banned_ip_params)
         redirect_to banned_ip_path(@banned_ip),
-                    notice: "Ban for IP #{@banned_ip.ip_address} has been updated."
+          notice: "Ban for IP #{@banned_ip.ip_address} has been updated."
       else
         render :edit
       end
@@ -72,31 +72,31 @@ module Beskar
       @banned_ip.destroy
 
       redirect_to banned_ips_path,
-                  notice: "IP address #{ip_address} has been unbanned."
+        notice: "IP address #{ip_address} has been unbanned."
     end
 
     def extend
       # Default to 24 hours if no duration specified (e.g., from index page)
-      duration_param = params[:duration] || '24h'
+      duration_param = params[:duration] || "24h"
 
       duration = case duration_param
-      when '1h'
+      when "1h"
         1.hour
-      when '6h'
+      when "6h"
         6.hours
-      when '24h'
+      when "24h"
         24.hours
-      when '7d'
+      when "7d"
         7.days
-      when '30d'
+      when "30d"
         30.days
-      when 'permanent'
+      when "permanent"
         nil
       else
         24.hours
       end
 
-      if duration_param == 'permanent'
+      if duration_param == "permanent"
         @banned_ip.update!(permanent: true, expires_at: nil)
         message = "Ban for IP #{@banned_ip.ip_address} is now permanent."
       else
@@ -107,7 +107,7 @@ module Beskar
         end
 
         @banned_ip.extend_ban!(duration)
-        duration_text = duration_param == '24h' ? '24 hours' : duration_param.gsub(/(\d+)([hd])/, '\1 \2').gsub('h', 'hour(s)').gsub('d', 'day(s)')
+        duration_text = (duration_param == "24h") ? "24 hours" : duration_param.gsub(/(\d+)([hd])/, '\1 \2').gsub("h", "hour(s)").gsub("d", "day(s)")
         message = "Ban for IP #{@banned_ip.ip_address} has been extended by #{duration_text}."
       end
 
@@ -119,11 +119,11 @@ module Beskar
 
     def bulk_action
       case params[:bulk_action]
-      when 'unban'
+      when "unban"
         unban_selected
-      when 'make_permanent'
+      when "make_permanent"
         make_permanent_selected
-      when 'extend'
+      when "extend"
         extend_selected
       else
         redirect_to banned_ips_path, alert: "Unknown action."
@@ -138,7 +138,7 @@ module Beskar
         format.csv do
           send_data generate_csv(@banned_ips),
             filename: "banned-ips-#{Date.current}.csv",
-            type: 'text/csv'
+            type: "text/csv"
         end
         format.json do
           render json: @banned_ips.as_json(except: [:updated_at])
@@ -169,13 +169,13 @@ module Beskar
     def apply_filters!
       # Filter by status
       case params[:status]
-      when 'active'
+      when "active"
         @banned_ips = @banned_ips.active
-      when 'expired'
+      when "expired"
         @banned_ips = @banned_ips.expired
-      when 'permanent'
+      when "permanent"
         @banned_ips = @banned_ips.permanent
-      when 'temporary'
+      when "temporary"
         @banned_ips = @banned_ips.temporary
       end
 
@@ -217,7 +217,7 @@ module Beskar
         banned_ips.destroy_all
 
         redirect_to banned_ips_path,
-                    notice: "#{count} IP(s) have been unbanned."
+          notice: "#{count} IP(s) have been unbanned."
       else
         redirect_to banned_ips_path, alert: "No IPs selected."
       end
@@ -226,10 +226,10 @@ module Beskar
     def make_permanent_selected
       if params[:ip_ids].present?
         count = Beskar::BannedIp.where(id: params[:ip_ids])
-                       .update_all(permanent: true, expires_at: nil)
+          .update_all(permanent: true, expires_at: nil)
 
         redirect_to banned_ips_path,
-                    notice: "#{count} ban(s) have been made permanent."
+          notice: "#{count} ban(s) have been made permanent."
       else
         redirect_to banned_ips_path, alert: "No IPs selected."
       end
@@ -240,9 +240,9 @@ module Beskar
         banned_ips = Beskar::BannedIp.where(id: params[:ip_ids])
 
         duration = case params[:duration]
-        when '24h' then 24.hours
-        when '7d' then 7.days
-        when '30d' then 30.days
+        when "24h" then 24.hours
+        when "7d" then 7.days
+        when "30d" then 30.days
         else 24.hours
         end
 
@@ -251,27 +251,27 @@ module Beskar
         end
 
         redirect_to banned_ips_path,
-                    notice: "#{banned_ips.count} ban(s) have been extended."
+          notice: "#{banned_ips.count} ban(s) have been extended."
       else
         redirect_to banned_ips_path, alert: "No IPs selected or duration not specified."
       end
     end
 
     def generate_csv(banned_ips)
-      require 'csv'
+      require "csv"
 
       CSV.generate(headers: true) do |csv|
-        csv << ['IP Address', 'Reason', 'Banned At', 'Expires At', 'Status', 'Violation Count', 'Details']
+        csv << ["IP Address", "Reason", "Banned At", "Expires At", "Status", "Violation Count", "Details"]
 
         banned_ips.find_each do |ban|
           csv << [
             ban.ip_address,
             ban.reason,
-            ban.banned_at.strftime('%Y-%m-%d %H:%M:%S'),
-            ban.expires_at&.strftime('%Y-%m-%d %H:%M:%S') || (ban.permanent? ? 'Never (Permanent)' : '-'),
-            ban.active? ? 'Active' : 'Expired',
+            ban.banned_at.strftime("%Y-%m-%d %H:%M:%S"),
+            ban.expires_at&.strftime("%Y-%m-%d %H:%M:%S") || (ban.permanent? ? "Never (Permanent)" : "-"),
+            ban.active? ? "Active" : "Expired",
             ban.violation_count,
-            ban.details || '-'
+            ban.details || "-"
           ]
         end
       end

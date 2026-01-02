@@ -3,7 +3,7 @@ module Beskar
     # Use the main app's CSRF protection settings
     protect_from_forgery with: :exception, prepend: true
 
-    layout 'beskar/application'
+    layout "beskar/application"
 
     # Ensure CSRF token is available for forms
     before_action :ensure_csrf_token
@@ -64,7 +64,7 @@ module Beskar
           # cookies.signed[:admin_token] == ENV['BESKAR_ADMIN_TOKEN']
 
           # Example 4: Simple token-based auth
-          # request.headers['Authorization'] == "Bearer #{ENV['BESKAR_ADMIN_TOKEN']}"
+          # request.headers['Authorization'] == "Bearer #{ENV["BESKAR_ADMIN_TOKEN"]}"
 
           # Example 5: For development/testing (NOT for production!)
           # Rails.env.development? || Rails.env.test?
@@ -83,8 +83,8 @@ module Beskar
     def render_404
       respond_to do |format|
         format.html { render file: "#{Rails.public_path}/404.html", status: :not_found, layout: false }
-        format.json { render json: { error: "Not found" }, status: :not_found }
-        format.any  { head :not_found }
+        format.json { render json: {error: "Not found"}, status: :not_found }
+        format.any { head :not_found }
       end
     end
 
@@ -107,7 +107,7 @@ module Beskar
       end
 
       return ip if location_parts.empty?
-      "#{ip} (#{location_parts.join(', ')})"
+      "#{ip} (#{location_parts.join(", ")})"
     end
     helper_method :format_ip_with_location
 
@@ -147,7 +147,7 @@ module Beskar
       page = 1 if page < 1
 
       total_count = collection.count
-      total_pages = total_count > 0 ? (total_count.to_f / per_page).ceil : 0
+      total_pages = (total_count > 0) ? (total_count.to_f / per_page).ceil : 0
 
       offset = (page - 1) * per_page
       records = collection.limit(per_page).offset(offset)
@@ -160,8 +160,8 @@ module Beskar
         per_page: per_page,
         has_previous: page > 1,
         has_next: page < total_pages,
-        previous_page: page > 1 ? page - 1 : nil,
-        next_page: page < total_pages ? page + 1 : nil
+        previous_page: (page > 1) ? page - 1 : nil,
+        next_page: (page < total_pages) ? page + 1 : nil
       }
     end
 

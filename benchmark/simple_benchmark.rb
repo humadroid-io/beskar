@@ -14,7 +14,6 @@ puts
 
 # Setup test data
 test_ip = "203.0.113.50"
-whitelist_ip = "192.168.1.100"
 
 mock_request = OpenStruct.new(
   ip: test_ip,

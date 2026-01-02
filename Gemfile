@@ -9,8 +9,8 @@ gem "sqlite3"
 
 gem "propshaft"
 
-# Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
-gem "rubocop-rails-omakase", require: false
+# Standard Ruby styling [https://github.com/standardrb/standard]
+gem "standard", require: false
 
 # Start debugger with binding.b [https://github.com/ruby/debug]
 # gem "debug", ">= 1.0.0"

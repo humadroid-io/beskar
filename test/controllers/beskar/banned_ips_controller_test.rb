@@ -9,7 +9,7 @@ module Beskar
 
       # Setup authentication for tests
       Beskar.configure do |config|
-        config.authenticate_admin = -> (request) { true }
+        config.authenticate_admin = ->(request) { true }
       end
     end
 
@@ -21,7 +21,7 @@ module Beskar
     # Authentication Tests
     test "requires authentication when configured" do
       Beskar.configure do |config|
-        config.authenticate_admin = -> (request) { false }
+        config.authenticate_admin = ->(request) { false }
       end
 
       get "/beskar/banned_ips"
@@ -63,7 +63,7 @@ module Beskar
       get "/beskar/banned_ips"
 
       assert_response :success
-      assert_match /no.*banned.*ips|empty/i, response.body
+      assert_match(/no.*banned.*ips|empty/i, response.body)
     end
 
     test "shows active and expired bans" do
@@ -81,8 +81,7 @@ module Beskar
       ban = create(:banned_ip,
         ip_address: "192.168.1.100",
         reason: "Multiple failed login attempts",
-        expires_at: 1.day.from_now
-      )
+        expires_at: 1.day.from_now)
 
       get "/beskar/banned_ips"
 
@@ -94,19 +93,19 @@ module Beskar
     test "paginates banned IPs" do
       create_list(:banned_ip, 30)
 
-      get "/beskar/banned_ips", params: { per_page: 10 }
+      get "/beskar/banned_ips", params: {per_page: 10}
 
       assert_response :success
       # Count table rows (excluding header)
       assert_select "tbody tr", count: 10
-      assert_match /Showing.*10.*of.*30/i, response.body
+      assert_match(/Showing.*10.*of.*30/i, response.body)
     end
 
     test "respects per_page parameter" do
       create_list(:banned_ip, 50)
 
       [10, 25, 50].each do |per_page|
-        get "/beskar/banned_ips", params: { per_page: per_page }
+        get "/beskar/banned_ips", params: {per_page: per_page}
         assert_response :success
         assert_select "tbody tr", maximum: per_page
       end
@@ -116,15 +115,15 @@ module Beskar
       create_list(:banned_ip, 5)
 
       # Invalid page number
-      get "/beskar/banned_ips", params: { page: -1 }
+      get "/beskar/banned_ips", params: {page: -1}
       assert_response :success
 
       # Invalid per_page
-      get "/beskar/banned_ips", params: { per_page: 0 }
+      get "/beskar/banned_ips", params: {per_page: 0}
       assert_response :success
 
       # Non-numeric values
-      get "/beskar/banned_ips", params: { page: "abc", per_page: "xyz" }
+      get "/beskar/banned_ips", params: {page: "abc", per_page: "xyz"}
       assert_response :success
     end
 
@@ -133,7 +132,7 @@ module Beskar
       active = create(:banned_ip, :active)
       expired = create(:banned_ip, :expired)
 
-      get "/beskar/banned_ips", params: { status: "active" }
+      get "/beskar/banned_ips", params: {status: "active"}
 
       assert_response :success
       assert_match active.ip_address, response.body
@@ -141,11 +140,11 @@ module Beskar
     end
 
     test "filters by IP address search" do
-      ban1 = create(:banned_ip, ip_address: "192.168.1.1")
-      ban2 = create(:banned_ip, ip_address: "192.168.1.2")
-      ban3 = create(:banned_ip, ip_address: "10.0.0.1")
+      create(:banned_ip, ip_address: "192.168.1.1")
+      create(:banned_ip, ip_address: "192.168.1.2")
+      create(:banned_ip, ip_address: "10.0.0.1")
 
-      get "/beskar/banned_ips", params: { ip_search: "192.168" }
+      get "/beskar/banned_ips", params: {ip_search: "192.168"}
 
       assert_response :success
       assert_match "192.168.1.1", response.body
@@ -158,7 +157,7 @@ module Beskar
       ban2 = create(:banned_ip, reason: "SQL injection attempts")
       ban3 = create(:banned_ip, reason: "Rate limit violations")
 
-      get "/beskar/banned_ips", params: { reason: "SQL injection attempts" }
+      get "/beskar/banned_ips", params: {reason: "SQL injection attempts"}
 
       assert_response :success
       assert_match ban2.ip_address, response.body
@@ -217,11 +216,11 @@ module Beskar
     end
 
     test "sorts by IP address" do
-      ban1 = create(:banned_ip, ip_address: "192.168.1.1")
-      ban2 = create(:banned_ip, ip_address: "10.0.0.1")
-      ban3 = create(:banned_ip, ip_address: "172.16.0.1")
+      create(:banned_ip, ip_address: "192.168.1.1")
+      create(:banned_ip, ip_address: "10.0.0.1")
+      create(:banned_ip, ip_address: "172.16.0.1")
 
-      get "/beskar/banned_ips", params: { sort: "ip_address", direction: "asc" }
+      get "/beskar/banned_ips", params: {sort: "ip_address", direction: "asc"}
 
       assert_response :success
       # All IPs should be present
@@ -235,7 +234,7 @@ module Beskar
       expires_later = create(:banned_ip, expires_at: 7.days.from_now)
       permanent = create(:banned_ip, expires_at: nil)
 
-      get "/beskar/banned_ips", params: { sort: "expires_at", direction: "asc" }
+      get "/beskar/banned_ips", params: {sort: "expires_at", direction: "asc"}
 
       assert_response :success
       # All bans displayed
@@ -255,7 +254,7 @@ module Beskar
     end
 
     test "prefills IP address from params" do
-      get "/beskar/banned_ips/new", params: { ip_address: "192.168.1.100" }
+      get "/beskar/banned_ips/new", params: {ip_address: "192.168.1.100"}
 
       assert_response :success
       # Form should be rendered successfully
@@ -263,9 +262,9 @@ module Beskar
     end
 
     test "shows recent events for IP when creating ban" do
-      event = create(:security_event, ip_address: "192.168.1.100")
+      create(:security_event, ip_address: "192.168.1.100")
 
-      get "/beskar/banned_ips/new", params: { ip_address: "192.168.1.100" }
+      get "/beskar/banned_ips/new", params: {ip_address: "192.168.1.100"}
 
       assert_response :success
       # Page renders successfully
@@ -384,7 +383,7 @@ module Beskar
 
     test "extends ban expiration" do
       ban = create(:banned_ip, expires_at: 1.day.from_now)
-      original_expiry = ban.expires_at
+      ban.expires_at
 
       patch "/beskar/banned_ips/#{ban.id}", params: {
         banned_ip: {
@@ -443,7 +442,7 @@ module Beskar
 
       assert_response :redirect
       follow_redirect!
-      assert_match /unbanned/i, response.body
+      assert_match(/unbanned/i, response.body)
     end
 
     test "bulk makes bans permanent" do
@@ -456,7 +455,7 @@ module Beskar
 
       assert_response :redirect
       follow_redirect!
-      assert_match /permanent/i, response.body
+      assert_match(/permanent/i, response.body)
 
       bans.each do |ban|
         ban.reload
@@ -516,17 +515,15 @@ module Beskar
     end
 
     test "exports filtered results to CSV" do
-      active = create(:banned_ip, :active)
-      expired = create(:banned_ip, :expired)
+      create(:banned_ip, :active)
+      create(:banned_ip, :expired)
 
-      get "/beskar/banned_ips/export.csv", params: { status: "active" }
+      get "/beskar/banned_ips/export.csv", params: {status: "active"}
 
       assert_response :success
       # Should export successfully
       assert_equal "text/csv", response.content_type
     end
-
-
 
     # UI Elements Tests
     test "includes filter form with all options" do
@@ -548,7 +545,7 @@ module Beskar
     end
 
     test "includes action buttons for each ban" do
-      ban = create(:banned_ip)
+      create(:banned_ip)
 
       get "/beskar/banned_ips"
 
@@ -586,10 +583,9 @@ module Beskar
     end
 
     test "escapes user input in display" do
-      ban = create(:banned_ip,
+      create(:banned_ip,
         reason: "<script>alert('xss')</script>",
-        details: "<img src=x onerror=alert('xss')>"
-      )
+        details: "<img src=x onerror=alert('xss')>")
 
       get "/beskar/banned_ips"
 
@@ -618,7 +614,7 @@ module Beskar
       create_list(:banned_ip, 100)
 
       start_time = Time.current
-      get "/beskar/banned_ips", params: { per_page: 25 }
+      get "/beskar/banned_ips", params: {per_page: 25}
       duration = Time.current - start_time
 
       assert_response :success
@@ -641,18 +637,15 @@ module Beskar
 
     # Integration Tests
 
-
     test "shows related security events for banned IP" do
       ban = create(:banned_ip, ip_address: "192.168.1.100")
-      events = create_list(:security_event, 3, ip_address: "192.168.1.100")
+      create_list(:security_event, 3, ip_address: "192.168.1.100")
 
       get "/beskar/banned_ips/#{ban.id}"
 
       assert_response :success
       # Show page displays successfully
     end
-
-
 
     private
 

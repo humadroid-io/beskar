@@ -60,7 +60,7 @@ module Beskar
       get "/beskar/dashboard"
 
       assert_response :success
-      assert_match /Security Dashboard/i, response.body
+      assert_match(/Security Dashboard/i, response.body)
 
       # Check that stats are displayed
       assert_select ".stat-card", minimum: 4
@@ -81,7 +81,7 @@ module Beskar
       create(:banned_ip, :active)
       create(:banned_ip, :permanent)
 
-      get "/beskar/dashboard", params: { time_range: '24h' }
+      get "/beskar/dashboard", params: {time_range: "24h"}
 
       assert_response :success
 
@@ -96,7 +96,7 @@ module Beskar
       create(:security_event, created_at: 45.minutes.ago)
       create(:security_event, created_at: 90.minutes.ago) # Outside range
 
-      get "/beskar/dashboard", params: { time_range: '1h' }
+      get "/beskar/dashboard", params: {time_range: "1h"}
 
       assert_response :success
 
@@ -113,7 +113,7 @@ module Beskar
       create(:security_event, created_at: 6.days.ago)
       create(:security_event, created_at: 8.days.ago) # Outside range
 
-      get "/beskar/dashboard", params: { time_range: '7d' }
+      get "/beskar/dashboard", params: {time_range: "7d"}
 
       assert_response :success
 
@@ -129,9 +129,9 @@ module Beskar
       events = []
       5.times do |i|
         events << create(:security_event,
-                        event_type: "login_failure",
-                        created_at: i.minutes.ago,
-                        ip_address: "192.168.1.#{i}")
+          event_type: "login_failure",
+          created_at: i.minutes.ago,
+          ip_address: "192.168.1.#{i}")
       end
 
       get "/beskar/dashboard"
@@ -150,14 +150,14 @@ module Beskar
       # Create multiple events from same IPs to make them "top threats"
       3.times { create(:security_event, ip_address: "10.0.0.1", risk_score: 80) }
       2.times { create(:security_event, ip_address: "10.0.0.2", risk_score: 60) }
-      1.times { create(:security_event, ip_address: "10.0.0.3", risk_score: 40) }
+      create(:security_event, ip_address: "10.0.0.3", risk_score: 40)
 
       get "/beskar/dashboard"
 
       assert_response :success
 
       # Check for Top Threat IPs section
-      assert_match /Top Threat IPs/i, response.body
+      assert_match(/Top Threat IPs/i, response.body)
       assert_select ".card-title", text: /Top Threat IPs/i
     end
 
@@ -190,10 +190,10 @@ module Beskar
       # Check for Risk Distribution section
       assert_select ".card-title", text: /Risk Distribution/i
       # Risk levels should be displayed
-      assert_match /Low/i, response.body
-      assert_match /Medium/i, response.body
-      assert_match /High/i, response.body
-      assert_match /Critical/i, response.body
+      assert_match(/Low/i, response.body)
+      assert_match(/Medium/i, response.body)
+      assert_match(/High/i, response.body)
+      assert_match(/Critical/i, response.body)
     end
 
     test "displays active IP bans section" do
@@ -208,8 +208,8 @@ module Beskar
       # Check for Active Bans section
       assert_select ".card-title", text: /Active Bans/i
       # Check that IPs are displayed
-      assert_match /10.0.0.1/, response.body
-      assert_match /10.0.0.2/, response.body
+      assert_match(/10.0.0.1/, response.body)
+      assert_match(/10.0.0.2/, response.body)
     end
 
     test "handles empty data gracefully" do
@@ -231,7 +231,7 @@ module Beskar
       assert_response :success
 
       # Should have ban link or banned badge
-      assert_match /10.0.0.1/, response.body
+      assert_match(/10.0.0.1/, response.body)
     end
 
     test "links to detailed views" do
@@ -242,8 +242,8 @@ module Beskar
       assert_response :success
 
       # Check for view all links
-      assert_match /View All Security Events/i, response.body
-      assert_match /Manage All Bans/i, response.body
+      assert_match(/View All Security Events/i, response.body)
+      assert_match(/Manage All Bans/i, response.body)
     end
 
     test "respects time range filter" do
@@ -253,7 +253,7 @@ module Beskar
         create(:security_event, created_at: Time.zone.now - 25.hours)
       end
 
-      get "/beskar/dashboard", params: { time_range: '24h' }
+      get "/beskar/dashboard", params: {time_range: "24h"}
 
       assert_response :success
 
@@ -292,16 +292,16 @@ module Beskar
 
     test "escapes HTML in event data" do
       create(:security_event,
-             event_type: "<script>alert('xss')</script>",
-             metadata: { details: "<img src=x onerror=alert('xss')>" })
+        event_type: "<script>alert('xss')</script>",
+        metadata: {details: "<img src=x onerror=alert('xss')>"})
 
       get "/beskar/dashboard"
 
       assert_response :success
 
       # Should escape HTML tags
-      assert_no_match /<script>alert/, response.body
-      assert_match /&lt;script&gt;/, response.body
+      assert_no_match(/<script>alert/, response.body)
+      assert_match(/&lt;script&gt;/, response.body)
     end
 
     test "includes CSRF protection" do
@@ -321,8 +321,8 @@ module Beskar
       # Create a large number of events
       100.times do |i|
         create(:security_event,
-               ip_address: "192.168.#{i % 10}.#{i}",
-               created_at: i.hours.ago)
+          ip_address: "192.168.#{i % 10}.#{i}",
+          created_at: i.hours.ago)
       end
 
       50.times do |i|

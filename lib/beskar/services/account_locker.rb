@@ -140,7 +140,7 @@ module Beskar
         begin
           # Use Devise's lock_access! method
           user.lock_access!(send_instructions: false)
-          
+
           # Set automatic unlock time if configured and supported
           if Beskar.configuration.auto_unlock_time && user.respond_to?(:locked_at=)
             user.update_column(:locked_at, Time.current)
@@ -202,12 +202,12 @@ module Beskar
         return unless user.respond_to?(:security_events)
 
         begin
-          event_type = lock_succeeded ? 'account_locked' : 'lock_attempted'
-          
+          event_type = lock_succeeded ? "account_locked" : "lock_attempted"
+
           user.security_events.create!(
             event_type: event_type,
-            ip_address: metadata[:ip_address] || 'system',
-            user_agent: metadata[:user_agent] || 'beskar_system',
+            ip_address: metadata[:ip_address] || "system",
+            user_agent: metadata[:user_agent] || "beskar_system",
             risk_score: risk_score,
             metadata: {
               reason: reason,
@@ -232,13 +232,13 @@ module Beskar
 
         begin
           user.security_events.create!(
-            event_type: 'account_unlocked',
-            ip_address: metadata[:ip_address] || 'system',
-            user_agent: metadata[:user_agent] || 'beskar_system',
+            event_type: "account_unlocked",
+            ip_address: metadata[:ip_address] || "system",
+            user_agent: metadata[:user_agent] || "beskar_system",
             risk_score: 0, # Unlock has no risk
             metadata: {
               unlocked_at: Time.current.iso8601,
-              unlock_method: 'manual',
+              unlock_method: "manual",
               additional_context: metadata
             }
           )
@@ -252,7 +252,7 @@ module Beskar
         # This would integrate with ActionMailer or notification system
         # For now, just log it
         Beskar::Logger.info("User #{user.id} should be notified of account lock", component: :AccountLocker)
-        
+
         # Future implementation:
         # if defined?(Beskar::AccountLockMailer)
         #   Beskar::AccountLockMailer.account_locked(user, risk_score, reason).deliver_later

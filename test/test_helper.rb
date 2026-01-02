@@ -2,7 +2,7 @@
 ENV["RAILS_ENV"] = "test"
 
 require_relative "../test/dummy/config/environment"
-ActiveRecord::Migrator.migrations_paths = [ File.expand_path("dummy/db/migrate", __dir__), File.expand_path("../db/migrate", __dir__) ]
+ActiveRecord::Migrator.migrations_paths = [File.expand_path("dummy/db/migrate", __dir__), File.expand_path("../db/migrate", __dir__)]
 require "rails/test_help"
 
 # Configure FactoryBot
@@ -11,11 +11,9 @@ require "factory_bot_rails"
 # Configure Mocha for mocking
 require "mocha/minitest"
 
-
 Rails.backtrace_cleaner.remove_silencers!
 
 Minitest.backtrace_filter = Minitest::BacktraceFilter.new
-
 
 # Simple test isolation helper
 module TestHelper
@@ -106,4 +104,4 @@ class ActionDispatch::IntegrationTest
   end
 end
 
-FactoryBot.definition_file_paths = [ File.expand_path("factories", __dir__) ]
+FactoryBot.definition_file_paths = [File.expand_path("factories", __dir__)]

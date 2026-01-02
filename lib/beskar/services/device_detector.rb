@@ -27,14 +27,14 @@ module Beskar
         curl|wget|postman|httpie|
         python-requests|ruby|php|java|
         headless|phantom|selenium|playwright
-      }ix.freeze
+      }ix
 
       # Mobile device patterns
       MOBILE_PATTERNS = %r{
         Mobile|Android|iPhone|iPad|iPod|
         BlackBerry|IEMobile|Opera\s*Mini|
         Windows\s*Phone|webOS|Kindle
-      }ix.freeze
+      }ix
 
       # Browser patterns with version extraction
       BROWSER_PATTERNS = {
@@ -111,11 +111,11 @@ module Beskar
         # because Chrome user agents contain "Safari"
         # Also check for Opera (OPR) before Chrome since it also contains Chrome
         if user_agent.match?(/OPR|Opera/i)
-          if match = user_agent.match(BROWSER_PATTERNS[:opera])
+          if (match = user_agent.match(BROWSER_PATTERNS[:opera]))
             return "Opera #{match[1]}"
           end
         elsif user_agent.match?(/Chrome/i) && !user_agent.match?(/Edg/i)
-          if match = user_agent.match(BROWSER_PATTERNS[:chrome])
+          if (match = user_agent.match(BROWSER_PATTERNS[:chrome]))
             return "Chrome #{match[1]}"
           end
         end
@@ -123,7 +123,7 @@ module Beskar
         BROWSER_PATTERNS.each do |browser, pattern|
           next if browser == :chrome # Already handled above
 
-          if match = user_agent.match(pattern)
+          if (match = user_agent.match(pattern))
             return "#{browser.to_s.titleize} #{match[1]}"
           end
         end
@@ -139,7 +139,7 @@ module Beskar
         return "Unknown" if user_agent.blank?
 
         PLATFORM_PATTERNS.each do |platform, pattern|
-          if match = user_agent.match(pattern)
+          if (match = user_agent.match(pattern))
             version = match[1]&.tr("_", ".")
 
             case platform
@@ -189,28 +189,28 @@ module Beskar
 
         # Bot detection adds significant risk
         if bot?(user_agent)
-                risk += 30
-        Rails.logger.info "Bot detected: #{user_agent}, adding 30 risk"
+          risk += 30
+          Rails.logger.info "Bot detected: #{user_agent}, adding 30 risk"
         end
 
         # Suspicious patterns
         if user_agent.length < 20 || user_agent.length > 500
-                risk += 15
-        Rails.logger.info "Suspicious length: #{user_agent.length}, adding 15 risk"
+          risk += 15
+          Rails.logger.info "Suspicious length: #{user_agent.length}, adding 15 risk"
         end
 
         if user_agent.match?(/test|debug|script/i)
-                risk += 10
-        Rails.logger.info "Suspicious pattern: #{user_agent}, adding 10 risk"
+          risk += 10
+          Rails.logger.info "Suspicious pattern: #{user_agent}, adding 10 risk"
         end
 
         if user_agent.count("()") > 3
-                risk += 5
-        Rails.logger.info "Suspicious pattern: #{user_agent}, adding 5 risk"
+          risk += 5
+          Rails.logger.info "Suspicious pattern: #{user_agent}, adding 5 risk"
         end
 
         # Very old browsers might be suspicious
-        if browser_info = detect_browser(user_agent)
+        if (browser_info = detect_browser(user_agent))
           if browser_info.match?(/Chrome (\d+)/) && $1.to_i < 90
             risk += 5
             Rails.logger.info "Suspicious browser: #{browser_info}, adding 5 risk"
@@ -220,7 +220,7 @@ module Beskar
           end
         end
 
-        [ risk, 50 ].min # Cap at 50 to leave room for other risk factors
+        [risk, 50].min # Cap at 50 to leave room for other risk factors
       end
 
       private

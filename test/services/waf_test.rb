@@ -22,13 +22,13 @@ class WafTest < ActiveSupport::TestCase
 
   def teardown
     Rails.cache.clear
-    Beskar.configuration.waf = { enabled: false }
+    Beskar.configuration.waf = {enabled: false}
   end
 
   def create_mock_request(path, ip: "192.168.1.100", user_agent: "TestBot/1.0")
-    mock_request = mock()
+    mock_request = mock
     mock_request.stubs(:fullpath).returns(path)
-    mock_request.stubs(:path).returns(path.split('?').first)
+    mock_request.stubs(:path).returns(path.split("?").first)
     mock_request.stubs(:ip).returns(ip)
     mock_request.stubs(:user_agent).returns(user_agent)
     mock_request
@@ -38,7 +38,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects wp-admin access" do
     request = create_mock_request("/wp-admin/index.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal 1, result[:patterns].length
@@ -49,7 +49,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects wp-login.php" do
     request = create_mock_request("/wp-login.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_includes result[:patterns].map { |p| p[:category] }, :wordpress
@@ -58,7 +58,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects xmlrpc.php" do
     request = create_mock_request("/xmlrpc.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
   end
@@ -67,7 +67,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects phpmyadmin access" do
     request = create_mock_request("/phpmyadmin/")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :php_admin, result[:patterns].first[:category]
@@ -76,7 +76,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects admin.php" do
     request = create_mock_request("/admin.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
   end
@@ -85,7 +85,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects .env file access" do
     request = create_mock_request("/.env")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :config_files, result[:patterns].first[:category]
@@ -95,7 +95,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects .git directory access" do
     request = create_mock_request("/.git/config")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :critical, result[:highest_severity]
@@ -104,7 +104,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects config.php" do
     request = create_mock_request("/config.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
   end
@@ -113,7 +113,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects /etc/passwd access" do
     request = create_mock_request("/etc/passwd")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :path_traversal, result[:patterns].first[:category]
@@ -123,7 +123,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects ../ path traversal" do
     request = create_mock_request("/files/../../etc/passwd")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :path_traversal, result[:patterns].first[:category]
@@ -132,7 +132,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects URL encoded path traversal" do
     request = create_mock_request("/files/%2e%2e/etc/passwd")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
   end
@@ -141,7 +141,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects Rails debug routes" do
     request = create_mock_request("/rails/info/routes")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :framework_debug, result[:patterns].first[:category]
@@ -150,7 +150,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects __debug__ endpoint" do
     request = create_mock_request("/__debug__/")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
   end
@@ -159,7 +159,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects shell.php" do
     request = create_mock_request("/shell.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert_equal :common_exploits, result[:patterns].first[:category]
@@ -169,7 +169,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request detects c99.php" do
     request = create_mock_request("/c99.php")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
   end
@@ -184,11 +184,11 @@ class WafTest < ActiveSupport::TestCase
       "/about",
       "/contact"
     ]
-    
+
     legitimate_paths.each do |path|
       request = create_mock_request(path)
       result = Beskar::Services::Waf.analyze_request(request)
-      
+
       assert_nil result, "Path #{path} should not trigger WAF"
     end
   end
@@ -196,7 +196,7 @@ class WafTest < ActiveSupport::TestCase
   test "analyze_request returns nil for blank paths" do
     request = create_mock_request("")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_nil result
   end
 
@@ -309,29 +309,29 @@ class WafTest < ActiveSupport::TestCase
   # Security event creation
   test "record_violation creates security event when configured" do
     Beskar.configuration.waf[:create_security_events] = true
-    
+
     ip = "10.0.0.108"
     request = create_mock_request("/wp-admin/", ip: ip)
     analysis = Beskar::Services::Waf.analyze_request(request)
-    
-    assert_difference 'Beskar::SecurityEvent.count', 1 do
+
+    assert_difference "Beskar::SecurityEvent.count", 1 do
       Beskar::Services::Waf.record_violation(ip, analysis)
     end
-    
+
     event = Beskar::SecurityEvent.last
-    assert_equal 'waf_violation', event.event_type
+    assert_equal "waf_violation", event.event_type
     assert_equal ip, event.ip_address
     assert event.risk_score >= 80 # high severity
   end
 
   test "record_violation does not create security event when disabled" do
     Beskar.configuration.waf[:create_security_events] = false
-    
+
     ip = "10.0.0.109"
     request = create_mock_request("/wp-admin/", ip: ip)
     analysis = Beskar::Services::Waf.analyze_request(request)
-    
-    assert_no_difference 'Beskar::SecurityEvent.count' do
+
+    assert_no_difference "Beskar::SecurityEvent.count" do
       Beskar::Services::Waf.record_violation(ip, analysis)
     end
   end
@@ -350,14 +350,14 @@ class WafTest < ActiveSupport::TestCase
     assert_equal false, Beskar::BannedIp.banned?(ip)
 
     # Second violation should trigger block (95 + 95 = 190 > 150)
-    assert_difference 'Beskar::BannedIp.count', 1 do
+    assert_difference "Beskar::BannedIp.count", 1 do
       Beskar::Services::Waf.record_violation(ip, analysis)
     end
 
     assert Beskar::BannedIp.banned?(ip)
 
     banned_ip = Beskar::BannedIp.find_by(ip_address: ip)
-    assert_equal 'waf_violation', banned_ip.reason
+    assert_equal "waf_violation", banned_ip.reason
   end
 
   # Case sensitivity
@@ -367,11 +367,11 @@ class WafTest < ActiveSupport::TestCase
       "/Wp-Admin/index.php",
       "/wp-ADMIN/index.php"
     ]
-    
+
     paths.each do |path|
       request = create_mock_request(path)
       result = Beskar::Services::Waf.analyze_request(request)
-      
+
       assert_not_nil result, "Path #{path} should trigger WAF"
       assert result[:threat_detected]
     end
@@ -382,7 +382,7 @@ class WafTest < ActiveSupport::TestCase
     # This path might match both wordpress and path_traversal
     request = create_mock_request("/wp-admin/../../etc/passwd")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_not_nil result
     assert result[:threat_detected]
     assert result[:patterns].length >= 1
@@ -392,21 +392,21 @@ class WafTest < ActiveSupport::TestCase
   test "highest_severity returns critical when critical pattern detected" do
     request = create_mock_request("/.env")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_equal :critical, result[:highest_severity]
   end
 
   test "highest_severity returns high when only high patterns detected" do
     request = create_mock_request("/wp-admin/")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_equal :high, result[:highest_severity]
   end
 
   test "highest_severity returns medium when only medium patterns detected" do
     request = create_mock_request("/rails/info/routes")
     result = Beskar::Services::Waf.analyze_request(request)
-    
+
     assert_equal :medium, result[:highest_severity]
   end
 

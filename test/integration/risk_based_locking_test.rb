@@ -1,16 +1,16 @@
-require 'test_helper'
+require "test_helper"
 
 class RiskBasedLockingTest < ActionDispatch::IntegrationTest
   setup do
     @user = DeviseUser.create!(
-      email: 'locktest@example.com',
-      password: 'password123',
-      password_confirmation: 'password123'
+      email: "locktest@example.com",
+      password: "password123",
+      password_confirmation: "password123"
     )
 
     # Reset configuration to defaults
     Beskar.configuration = Beskar::Configuration.new
-    
+
     # Clear any existing security events
     Beskar::SecurityEvent.delete_all
   end
@@ -27,15 +27,15 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     # Simulate a login with high risk factors
     post devise_user_session_path, params: {
-      devise_user: { email: @user.email, password: 'password123' }
+      devise_user: {email: @user.email, password: "password123"}
     }
 
     assert_response :redirect
-    
+
     # Security event should be created
     assert @user.security_events.login_successes.any?,
       "Should create login success event"
-    
+
     # User should not be locked when feature is disabled
     # Note: lockable module may not be enabled in test environment
     @user.reload
@@ -52,17 +52,17 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     # Login with normal conditions (low risk)
     post devise_user_session_path, params: {
-      devise_user: { email: @user.email, password: 'password123' }
+      devise_user: {email: @user.email, password: "password123"}
     }
 
     assert_response :redirect
-    
+
     # Check the risk score of the created event
     last_event = @user.security_events.login_successes.last
     assert_not_nil last_event, "Should create login success event"
     assert last_event.risk_score < 90,
       "Risk score #{last_event.risk_score} should be below threshold of 90"
-    
+
     # User should not be locked when risk is below threshold
     # Note: lockable module may not be enabled in test environment
     @user.reload
@@ -80,13 +80,13 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     # Manually create a high-risk security event
     security_event = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.1',
-      user_agent: 'Suspicious Browser',
+      event_type: "login_success",
+      ip_address: "203.0.113.1",
+      user_agent: "Suspicious Browser",
       risk_score: 85,
       metadata: {
-        device_info: { suspicious: true },
-        geolocation: { country: 'Unknown' }
+        device_info: {suspicious: true},
+        geolocation: {country: "Unknown"}
       }
     )
 
@@ -96,15 +96,15 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
       risk_score: 85,
       reason: :high_risk_authentication,
       metadata: {
-        ip_address: '203.0.113.1',
-        user_agent: 'Suspicious Browser',
+        ip_address: "203.0.113.1",
+        user_agent: "Suspicious Browser",
         security_event_id: security_event.id
       }
     )
 
     # Should want to lock but fail (no :lockable module)
     assert locker.should_lock?
-    
+
     # Verify the decision was correct
     assert_equal 85, locker.risk_score
     assert_equal :high_risk_authentication, locker.reason
@@ -127,12 +127,12 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
   test "should determine correct lock reason based on security event metadata" do
     # Test impossible travel detection
     security_event = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.1',
-      user_agent: 'Normal Browser',
+      event_type: "login_success",
+      ip_address: "203.0.113.1",
+      user_agent: "Normal Browser",
       risk_score: 85,
       metadata: {
-        geolocation: { impossible_travel: true, country: 'Japan' }
+        geolocation: {impossible_travel: true, country: "Japan"}
       }
     )
 
@@ -141,12 +141,12 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     # Test suspicious device
     security_event2 = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.2',
-      user_agent: 'Bot Browser',
+      event_type: "login_success",
+      ip_address: "203.0.113.2",
+      user_agent: "Bot Browser",
       risk_score: 85,
       metadata: {
-        device_info: { bot_signature: true }
+        device_info: {bot_signature: true}
       }
     )
 
@@ -155,12 +155,12 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     # Test geographic anomaly
     security_event3 = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.3',
-      user_agent: 'Normal Browser',
+      event_type: "login_success",
+      ip_address: "203.0.113.3",
+      user_agent: "Normal Browser",
       risk_score: 85,
       metadata: {
-        geolocation: { country_change: true }
+        geolocation: {country_change: true}
       }
     )
 
@@ -169,9 +169,9 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
 
     # Test default reason
     security_event4 = @user.security_events.create!(
-      event_type: 'login_success',
-      ip_address: '203.0.113.4',
-      user_agent: 'Normal Browser',
+      event_type: "login_success",
+      ip_address: "203.0.113.4",
+      user_agent: "Normal Browser",
       risk_score: 85,
       metadata: {}
     )
@@ -218,7 +218,7 @@ class RiskBasedLockingTest < ActionDispatch::IntegrationTest
   test "should handle edge case of user without security_events association" do
     # Create a mock user without the association
     mock_user = Object.new
-    
+
     locker = Beskar::Services::AccountLocker.new(
       mock_user,
       risk_score: 90,

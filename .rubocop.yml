@@ -1,0 +1,3 @@
+# Standard Ruby styling
+inherit_gem:
+  standard: config/base.yml

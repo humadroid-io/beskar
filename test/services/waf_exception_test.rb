@@ -1,5 +1,5 @@
-require 'test_helper'
-require 'ostruct'
+require "test_helper"
+require "ostruct"
 
 class WafExceptionTest < ActiveSupport::TestCase
   def setup
@@ -20,7 +20,7 @@ class WafExceptionTest < ActiveSupport::TestCase
 
   def teardown
     Rails.cache.clear
-    Beskar.configuration.waf = { enabled: false }
+    Beskar.configuration.waf = {enabled: false}
     Beskar::SecurityEvent.destroy_all
     Beskar::BannedIp.destroy_all
   end
@@ -81,7 +81,7 @@ class WafExceptionTest < ActiveSupport::TestCase
     assert_equal "Invalid MIME type requested - potential scanner", analysis[:patterns].first[:description]
     assert_equal "192.168.1.100", analysis[:ip_address]
     assert_equal "ActionDispatch::Http::MimeNegotiation::InvalidType", analysis[:exception_class]
-    assert_includes analysis[:exception_message], 'is not a valid MIME type'
+    assert_includes analysis[:exception_message], "is not a valid MIME type"
   end
 
   test "excludes RecordNotFound for configured patterns" do
@@ -111,23 +111,23 @@ class WafExceptionTest < ActiveSupport::TestCase
     analysis = Beskar::Services::Waf.analyze_exception(exception, request)
 
     # Record the violation
-    assert_difference 'Beskar::SecurityEvent.count', 1 do
+    assert_difference "Beskar::SecurityEvent.count", 1 do
       current_score = Beskar::Services::Waf.record_violation("192.168.1.100", analysis)
       assert_equal 60, current_score.round # medium severity = 60 points
     end
 
     # Check the security event was created correctly
     event = Beskar::SecurityEvent.last
-    assert_equal 'waf_violation', event.event_type
-    assert_equal '192.168.1.100', event.ip_address
+    assert_equal "waf_violation", event.event_type
+    assert_equal "192.168.1.100", event.ip_address
     assert_equal 60, event.risk_score # medium severity = 60
-    assert_includes event.metadata['patterns_matched'], "Invalid MIME type requested - potential scanner"
-    assert_equal "ActionDispatch::Http::MimeNegotiation::InvalidType", event.metadata['waf_analysis']['exception_class']
+    assert_includes event.metadata["patterns_matched"], "Invalid MIME type requested - potential scanner"
+    assert_equal "ActionDispatch::Http::MimeNegotiation::InvalidType", event.metadata["waf_analysis"]["exception_class"]
   end
 
   test "auto-blocks IP after threshold violations from InvalidType exceptions" do
     request = mock_request("/api/data", "192.168.1.100")
-    exception = ActionDispatch::Http::MimeNegotiation::InvalidType.new('Invalid MIME type')
+    exception = ActionDispatch::Http::MimeNegotiation::InvalidType.new("Invalid MIME type")
 
     # Create violations up to threshold
     3.times do |i|
@@ -139,7 +139,7 @@ class WafExceptionTest < ActiveSupport::TestCase
     assert Beskar::BannedIp.banned?("192.168.1.100")
 
     banned_ip = Beskar::BannedIp.find_by(ip_address: "192.168.1.100")
-    assert_equal 'waf_violation', banned_ip.reason
+    assert_equal "waf_violation", banned_ip.reason
     assert_includes banned_ip.details, "Invalid MIME type requested - potential scanner"
   end
 
@@ -150,18 +150,18 @@ class WafExceptionTest < ActiveSupport::TestCase
     analysis = Beskar::Services::Waf.analyze_exception(exception, request)
 
     # Record the violation
-    assert_difference 'Beskar::SecurityEvent.count', 1 do
+    assert_difference "Beskar::SecurityEvent.count", 1 do
       current_score = Beskar::Services::Waf.record_violation("192.168.1.100", analysis)
       assert_equal 60, current_score.round # medium severity = 60 points
     end
 
     # Check the security event was created correctly
     event = Beskar::SecurityEvent.last
-    assert_equal 'waf_violation', event.event_type
-    assert_equal '192.168.1.100', event.ip_address
+    assert_equal "waf_violation", event.event_type
+    assert_equal "192.168.1.100", event.ip_address
     assert_equal 60, event.risk_score # medium severity = 60
-    assert_includes event.metadata['patterns_matched'], "Unknown format requested - potential scanner"
-    assert_equal "ActionController::UnknownFormat", event.metadata['waf_analysis']['exception_class']
+    assert_includes event.metadata["patterns_matched"], "Unknown format requested - potential scanner"
+    assert_equal "ActionController::UnknownFormat", event.metadata["waf_analysis"]["exception_class"]
   end
 
   test "auto-blocks IP after threshold violations from exceptions" do
@@ -178,7 +178,7 @@ class WafExceptionTest < ActiveSupport::TestCase
     assert Beskar::BannedIp.banned?("192.168.1.100")
 
     banned_ip = Beskar::BannedIp.find_by(ip_address: "192.168.1.100")
-    assert_equal 'waf_violation', banned_ip.reason
+    assert_equal "waf_violation", banned_ip.reason
     assert_includes banned_ip.details, "Unknown format requested - potential scanner"
   end
 
@@ -251,7 +251,7 @@ class WafExceptionTest < ActiveSupport::TestCase
     events = Beskar::SecurityEvent.where(ip_address: "192.168.1.100")
     assert_equal 3, events.count
 
-    patterns = events.map { |e| e.metadata['patterns_matched'] }.flatten
+    patterns = events.map { |e| e.metadata["patterns_matched"] }.flatten
     assert_includes patterns, "WordPress vulnerability scan"
     assert_includes patterns, "Unknown format requested - potential scanner"
     assert_includes patterns, "PHP admin panel scan"
@@ -275,7 +275,7 @@ class WafExceptionTest < ActiveSupport::TestCase
   def mock_request(path, ip, user_agent = "Mozilla/5.0")
     request = OpenStruct.new
     request.fullpath = path
-    request.path = path.split('?').first
+    request.path = path.split("?").first
     request.ip = ip
     request.user_agent = user_agent
     request

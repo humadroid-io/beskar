@@ -1,13 +1,13 @@
-require 'test_helper'
+require "test_helper"
 
 module Beskar
   module Services
     class AccountLockerTest < ActiveSupport::TestCase
       setup do
         @user = DeviseUser.create!(
-          email: 'test@example.com',
-          password: 'password123',
-          password_confirmation: 'password123'
+          email: "test@example.com",
+          password: "password123",
+          password_confirmation: "password123"
         )
 
         # Reset configuration to defaults
@@ -18,7 +18,7 @@ module Beskar
         Beskar.configuration.risk_based_locking[:enabled] = false
 
         locker = AccountLocker.new(@user, risk_score: 90, reason: :high_risk_login)
-        
+
         assert_not locker.should_lock?
         assert_not locker.lock_if_necessary!
       end
@@ -28,7 +28,7 @@ module Beskar
         Beskar.configuration.risk_based_locking[:risk_threshold] = 75
 
         locker = AccountLocker.new(@user, risk_score: 50, reason: :high_risk_login)
-        
+
         assert_not locker.should_lock?
         assert_not locker.lock_if_necessary!
       end
@@ -38,7 +38,7 @@ module Beskar
         Beskar.configuration.risk_based_locking[:risk_threshold] = 75
 
         locker = AccountLocker.new(@user, risk_score: 85, reason: :high_risk_login)
-        
+
         assert locker.should_lock?
       end
 
@@ -47,7 +47,7 @@ module Beskar
         Beskar.configuration.risk_based_locking[:lock_strategy] = :devise_lockable
 
         locker = AccountLocker.new(@user, risk_score: 90, reason: :high_risk_login)
-        
+
         # DeviseUser model now has :lockable module enabled, so lock should succeed
         assert locker.lock!
         assert @user.reload.access_locked?
@@ -59,7 +59,7 @@ module Beskar
         Beskar.configuration.risk_based_locking[:risk_threshold] = 75
 
         locker = AccountLocker.new(@user, risk_score: 85, reason: :high_risk_login)
-        
+
         # Custom strategy not implemented, should return false
         assert_not locker.lock!
       end
@@ -72,7 +72,7 @@ module Beskar
         @user.define_singleton_method(:access_locked?) { true }
 
         locker = AccountLocker.new(@user, risk_score: 90, reason: :high_risk_login)
-        
+
         assert_not locker.should_lock?
       end
 
@@ -86,36 +86,36 @@ module Beskar
           @user,
           risk_score: 85,
           reason: :high_risk_login,
-          metadata: { ip_address: '192.168.1.1', user_agent: 'Test Browser' }
+          metadata: {ip_address: "192.168.1.1", user_agent: "Test Browser"}
         )
 
         # Even though lock fails (custom not implemented), it should still log the attempt
         initial_count = @user.security_events.count
         locker.lock!
-        
+
         # CHANGED BEHAVIOR: Lock events are always logged when log_lock_events is true
         # This creates an audit trail even if actual locking fails
         assert_equal initial_count + 1, @user.security_events.count
-        
+
         # The event type should be 'lock_attempted' since actual lock failed
         last_event = @user.security_events.last
-        assert_equal 'lock_attempted', last_event.event_type
+        assert_equal "lock_attempted", last_event.event_type
       end
 
       test "should check locked status correctly" do
         locker = AccountLocker.new(@user, risk_score: 50)
-        
+
         assert_not locker.locked?
 
         # Mock locked state
         @user.define_singleton_method(:access_locked?) { true }
-        
+
         assert locker.locked?
       end
 
       test "should handle nil user gracefully" do
         locker = AccountLocker.new(nil, risk_score: 90, reason: :high_risk_login)
-        
+
         assert_not locker.should_lock?
         assert_not locker.lock!
         assert_not locker.unlock!
@@ -141,9 +141,9 @@ module Beskar
         Beskar.configuration.risk_based_locking[:risk_threshold] = 75
 
         metadata = {
-          ip_address: '203.0.113.1',
-          user_agent: 'Suspicious Bot',
-          geolocation: { country: 'Unknown' }
+          ip_address: "203.0.113.1",
+          user_agent: "Suspicious Bot",
+          geolocation: {country: "Unknown"}
         }
 
         locker = AccountLocker.new(

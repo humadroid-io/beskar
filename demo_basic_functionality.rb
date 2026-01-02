@@ -3,8 +3,8 @@
 # Demo script showing basic Beskar functionality
 # Run this from the beskar gem directory with: ruby demo_basic_functionality.rb
 
-require_relative 'test/test_helper'
-require 'ostruct'
+require_relative "test/test_helper"
+require "ostruct"
 
 puts "🔒 Beskar Security Gem - Basic Functionality Demo"
 puts "=" * 60
@@ -38,7 +38,7 @@ puts "   Account Rate Limit: #{Beskar.configuration.rate_limiting[:account_attem
 puts
 
 # Create a test user
-user = User.create!(email: 'demo@example.com', password: 'password123')
+user = User.create!(email: "demo@example.com", password: "password123")
 puts "👤 Created test user: #{user.email}"
 puts
 
@@ -47,19 +47,19 @@ puts "📊 Demo 1: Tracking Successful Login"
 puts "-" * 40
 
 success_request = OpenStruct.new(
-  ip: '192.168.1.100',
-  user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-  path: '/users/sign_in',
-  session: OpenStruct.new(id: 'demo_session_success'),
-  headers: { 'Accept-Language' => 'en-US,en;q=0.9' }
+  ip: "192.168.1.100",
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+  path: "/users/sign_in",
+  session: OpenStruct.new(id: "demo_session_success"),
+  headers: {"Accept-Language" => "en-US,en;q=0.9"}
 )
 
 event = user.track_authentication_event(success_request, :success)
 puts "   Event Type: #{event.event_type}"
 puts "   IP Address: #{event.ip_address}"
 puts "   Risk Score: #{event.risk_score}/100"
-puts "   Device: #{event.device_info['browser']} on #{event.device_info['platform']}"
-puts "   Mobile: #{event.device_info['mobile']}"
+puts "   Device: #{event.device_info["browser"]} on #{event.device_info["platform"]}"
+puts "   Mobile: #{event.device_info["mobile"]}"
 puts
 
 # Demo 2: Track failed login attempts
@@ -68,12 +68,12 @@ puts "-" * 40
 
 3.times do |i|
   failed_request = OpenStruct.new(
-    ip: '10.0.0.1',
-    user_agent: 'curl/7.68.0',  # Suspicious user agent
-    path: '/users/sign_in',
+    ip: "10.0.0.1",
+    user_agent: "curl/7.68.0",  # Suspicious user agent
+    path: "/users/sign_in",
     session: OpenStruct.new(id: "demo_session_fail_#{i}"),
     headers: {},
-    params: { 'user' => { 'email' => 'attacker@malicious.com' } }
+    params: {"user" => {"email" => "attacker@malicious.com"}}
   )
 
   User.track_failed_authentication(failed_request, :user)
@@ -87,7 +87,7 @@ puts
 puts "📊 Demo 3: Rate Limiting in Action"
 puts "-" * 40
 
-test_ip = '203.0.113.1'
+test_ip = "203.0.113.1"
 rate_limiter = Beskar::Services::RateLimiter.new(test_ip, user)
 
 puts "   Initial state:"
@@ -117,19 +117,19 @@ puts "📊 Demo 4: Attack Pattern Detection"
 puts "-" * 40
 
 # Create distributed attack pattern (multiple IPs, same user)
-attack_ips = ['192.168.1.1', '192.168.1.2', '192.168.1.3']
+attack_ips = ["192.168.1.1", "192.168.1.2", "192.168.1.3"]
 attack_ips.each_with_index do |ip, i|
   user.security_events.create!(
-    event_type: 'login_failure',
+    event_type: "login_failure",
     ip_address: ip,
-    user_agent: 'AttackBot/1.0',
+    user_agent: "AttackBot/1.0",
     risk_score: 75,
     created_at: Time.current - (i * 30), # 30 seconds apart
-    metadata: { attempted_email: user.email }
+    metadata: {attempted_email: user.email}
   )
 end
 
-attack_analyzer = Beskar::Services::RateLimiter.new('192.168.1.1', user)
+attack_analyzer = Beskar::Services::RateLimiter.new("192.168.1.1", user)
 pattern_type = attack_analyzer.attack_pattern_type
 
 puts "   Pattern detected: #{pattern_type}"

@@ -82,7 +82,7 @@ class InstallGeneratorTest < Rails::Generators::TestCase
     template_content = File.read(template_path)
 
     assert_match(/config\.monitor_only = <%= Rails\.env\.development\? \? 'true' : 'false' %>/, template_content,
-                 "Template should set monitor_only based on Rails.env.development?")
+      "Template should set monitor_only based on Rails.env.development?")
   end
 
   test "generator does not reference obsolete block_threshold parameter" do
@@ -151,7 +151,7 @@ class InstallGeneratorTest < Rails::Generators::TestCase
     # Verify route appears only once
     assert File.exist?(routes_file), "Routes file should exist"
     content = File.read(routes_file)
-    mount_count = content.scan(/mount Beskar::Engine/).count
+    mount_count = content.scan("mount Beskar::Engine").count
     assert_equal 1, mount_count, "Route should only appear once"
   end
 
@@ -201,7 +201,7 @@ class InstallGeneratorTest < Rails::Generators::TestCase
 
       required_sections.each do |section|
         assert_match(/#{Regexp.escape(section)}/, content,
-                     "Initializer should contain #{section} section")
+          "Initializer should contain #{section} section")
       end
     end
   end

@@ -57,7 +57,7 @@ module Beskar
       end
 
       test "handles blank IP addresses" do
-        [ "", nil, "   " ].each do |ip|
+        ["", nil, "   "].each do |ip|
           result = @service.locate(ip)
           assert_equal true, result[:private_ip]
         end
@@ -121,8 +121,8 @@ module Beskar
       # Test impossible travel detection
       test "impossible_travel? detects impossible travel" do
         # New York to London is about 5585 km
-        ny_location = { latitude: 40.7128, longitude: -74.0060 }
-        london_location = { latitude: 51.5074, longitude: -0.1278 }
+        ny_location = {latitude: 40.7128, longitude: -74.0060}
+        london_location = {latitude: 51.5074, longitude: -0.1278}
 
         # 1 hour is not enough time to travel from NY to London
         one_hour = 3600
@@ -134,7 +134,7 @@ module Beskar
       end
 
       test "impossible_travel? handles nil locations" do
-        location = { latitude: 40.0, longitude: -74.0 }
+        location = {latitude: 40.0, longitude: -74.0}
 
         assert_equal false, @service.impossible_travel?(nil, location, 3600)
         assert_equal false, @service.impossible_travel?(location, nil, 3600)
@@ -142,16 +142,16 @@ module Beskar
       end
 
       test "impossible_travel? handles locations without coordinates" do
-        location1 = { country: "US" }
-        location2 = { latitude: 40.0, longitude: -74.0 }
+        location1 = {country: "US"}
+        location2 = {latitude: 40.0, longitude: -74.0}
 
         assert_equal false, @service.impossible_travel?(location1, location2, 3600)
       end
 
       test "impossible_travel? allows reasonable travel" do
         # NYC to Philadelphia is about 130 km - should be possible in 2 hours
-        nyc = { latitude: 40.7128, longitude: -74.0060 }
-        philly = { latitude: 39.9526, longitude: -75.1652 }
+        nyc = {latitude: 40.7128, longitude: -74.0060}
+        philly = {latitude: 39.9526, longitude: -75.1652}
 
         two_hours = 7200
         assert_equal false, @service.impossible_travel?(nyc, philly, two_hours)
@@ -178,7 +178,7 @@ module Beskar
         service.locate(london_ip)
 
         # Calculate risk with short time difference (impossible travel)
-        risk = service.calculate_location_risk(london_ip, [ ny_location ], 3600)
+        risk = service.calculate_location_risk(london_ip, [ny_location], 3600)
 
         # Should detect impossible travel and add significant risk
         assert risk >= 25
@@ -200,7 +200,7 @@ module Beskar
           "Test requires different countries (got #{us_location[:country]} and #{uk_location[:country]})"
 
         # Country change should add some risk
-        risk = service.calculate_location_risk(uk_ip, [ us_location ])
+        risk = service.calculate_location_risk(uk_ip, [us_location])
         assert risk >= 10, "Country change should add at least 10 risk points (got #{risk})"
       end
 
@@ -281,7 +281,7 @@ module Beskar
 
       # Test different providers
       test "initializes with different providers" do
-        providers = [ :mock, :maxmind, :ip2location ]
+        providers = [:mock, :maxmind, :ip2location]
 
         providers.each do |provider|
           # Clear cache to avoid interference between providers
@@ -315,7 +315,7 @@ module Beskar
         service = Beskar::Services::GeolocationService.new(provider: :mock)
 
         # Test with known public IPs
-        public_ips = [ "203.0.113.1", "203.0.113.50", "203.0.113.100" ]
+        public_ips = ["203.0.113.1", "203.0.113.50", "203.0.113.100"]
 
         public_ips.each do |ip|
           result = service.locate(ip)
@@ -328,9 +328,9 @@ module Beskar
           assert_not_nil result[:longitude], "#{ip} should have longitude"
 
           # Coordinates should be valid
-          assert result[:latitude] >= -90 && result[:latitude] <= 90,
+          assert result[:latitude].between?(-90, 90),
             "Latitude #{result[:latitude]} should be between -90 and 90"
-          assert result[:longitude] >= -180 && result[:longitude] <= 180,
+          assert result[:longitude].between?(-180, 180),
             "Longitude #{result[:longitude]} should be between -180 and 180"
         end
       end
@@ -345,7 +345,7 @@ module Beskar
           nil                 # Nil
         ]
 
-        expected_keys = [ :ip, :country, :country_code, :city, :latitude, :longitude, :timezone, :provider, :private_ip ]
+        expected_keys = [:ip, :country, :country_code, :city, :latitude, :longitude, :timezone, :provider, :private_ip]
 
         test_ips.each do |ip|
           result = @service.locate(ip)
@@ -480,7 +480,7 @@ module Beskar
 
         if result[:latitude]
           assert result[:latitude].is_a?(Numeric), "Latitude should be numeric"
-          assert result[:latitude] >= -90 && result[:latitude] <= 90,
+          assert result[:latitude].between?(-90, 90),
             "Latitude should be valid (-90 to 90)"
         end
       end

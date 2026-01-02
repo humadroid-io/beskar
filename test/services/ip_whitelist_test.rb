@@ -25,14 +25,14 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? matches single IP address" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("192.168.1.101")
   end
 
   test "whitelisted? matches multiple IP addresses" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100", "10.0.0.50", "172.16.0.1"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert Beskar::Services::IpWhitelist.whitelisted?("10.0.0.50")
     assert Beskar::Services::IpWhitelist.whitelisted?("172.16.0.1")
@@ -41,7 +41,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? matches CIDR notation /24" do
     Beskar.configuration.ip_whitelist = ["192.168.1.0/24"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.1")
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.254")
@@ -50,7 +50,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? matches CIDR notation /16" do
     Beskar.configuration.ip_whitelist = ["10.0.0.0/16"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("10.0.0.1")
     assert Beskar::Services::IpWhitelist.whitelisted?("10.0.255.255")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("10.1.0.1")
@@ -58,7 +58,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? matches CIDR notation /32 (single IP)" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100/32"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("192.168.1.101")
   end
@@ -69,16 +69,16 @@ class IpWhitelistTest < ActiveSupport::TestCase
       "10.0.0.0/24",             # /24 range
       "172.16.0.0/16"            # /16 range
     ]
-    
+
     # Individual IP
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("192.168.1.101")
-    
+
     # /24 range
     assert Beskar::Services::IpWhitelist.whitelisted?("10.0.0.1")
     assert Beskar::Services::IpWhitelist.whitelisted?("10.0.0.255")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("10.0.1.1")
-    
+
     # /16 range
     assert Beskar::Services::IpWhitelist.whitelisted?("172.16.0.1")
     assert Beskar::Services::IpWhitelist.whitelisted?("172.16.255.255")
@@ -87,14 +87,14 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? handles IPv6 addresses" do
     Beskar.configuration.ip_whitelist = ["2001:db8::1"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("2001:db8::1")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("2001:db8::2")
   end
 
   test "whitelisted? handles IPv6 CIDR notation" do
     Beskar.configuration.ip_whitelist = ["2001:db8::/32"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("2001:db8::1")
     assert Beskar::Services::IpWhitelist.whitelisted?("2001:db8:ffff::1")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("2001:db9::1")
@@ -102,7 +102,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? returns false for invalid IP addresses" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100"]
-    
+
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("invalid-ip")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("999.999.999.999")
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?(nil)
@@ -111,7 +111,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelisted? handles whitespace in IP addresses" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100"]
-    
+
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100  ")
     assert Beskar::Services::IpWhitelist.whitelisted?("  192.168.1.100")
     assert Beskar::Services::IpWhitelist.whitelisted?(" 192.168.1.100 ")
@@ -123,7 +123,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
       "10.0.0.0/24",
       "172.16.0.0/16"
     ]
-    
+
     assert_nothing_raised do
       Beskar::Services::IpWhitelist.validate_configuration!
     end
@@ -131,36 +131,36 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "validate_configuration! raises error for invalid IP" do
     Beskar.configuration.ip_whitelist = ["invalid-ip"]
-    
+
     error = assert_raises(Beskar::Services::IpWhitelist::ConfigurationError) do
       Beskar::Services::IpWhitelist.validate_configuration!
     end
-    
+
     assert_match(/invalid ip/i, error.message)
   end
 
   test "validate_configuration! raises error for invalid CIDR" do
     Beskar.configuration.ip_whitelist = ["192.168.1.0/999"]
-    
+
     error = assert_raises(Beskar::Services::IpWhitelist::ConfigurationError) do
       Beskar::Services::IpWhitelist.validate_configuration!
     end
-    
+
     assert_match(/Entry 0/i, error.message)
   end
 
   test "clear_cache! clears cached entries" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100"]
-    
+
     # First check should cache the result
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
-    
+
     # Change configuration
     Beskar.configuration.ip_whitelist = ["10.0.0.1"]
-    
+
     # Without clearing cache, old config might still be used
     Beskar::Services::IpWhitelist.clear_cache!
-    
+
     # Now should use new configuration
     assert_equal false, Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert Beskar::Services::IpWhitelist.whitelisted?("10.0.0.1")
@@ -168,7 +168,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
 
   test "whitelist_entries returns array" do
     Beskar.configuration.ip_whitelist = ["192.168.1.100"]
-    
+
     entries = Beskar::Services::IpWhitelist.whitelist_entries
     assert_instance_of Array, entries
     assert_equal ["192.168.1.100"], entries
@@ -177,7 +177,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
   test "whitelist_entries handles string configuration" do
     # In case someone sets it as a string instead of array
     Beskar.configuration.ip_whitelist = "192.168.1.100"
-    
+
     entries = Beskar::Services::IpWhitelist.whitelist_entries
     assert_instance_of Array, entries
   end
@@ -187,7 +187,7 @@ class IpWhitelistTest < ActiveSupport::TestCase
       "192.168.1.0/24",
       "192.168.1.100"   # This is already in the /24 range
     ]
-    
+
     # Should still work correctly
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.100")
     assert Beskar::Services::IpWhitelist.whitelisted?("192.168.1.50")
@@ -197,14 +197,14 @@ class IpWhitelistTest < ActiveSupport::TestCase
     # Test with many ranges to ensure performance is acceptable
     ranges = (1..50).map { |i| "10.#{i}.0.0/24" }
     Beskar.configuration.ip_whitelist = ranges
-    
+
     # Should be fast even with many ranges
     start_time = Time.now
     100.times do
       Beskar::Services::IpWhitelist.whitelisted?("10.25.0.100")
     end
     elapsed = Time.now - start_time
-    
+
     # Should complete in reasonable time (adjust threshold as needed)
     assert elapsed < 1.0, "Whitelist checking took too long: #{elapsed}s"
   end
