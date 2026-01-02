@@ -2,6 +2,14 @@
 
 **Beskar** is a comprehensive, Rails-native security engine designed to provide multi-layered, proactive protection for modern web applications. It defends against common threats, bot activity, and account takeovers without requiring external dependencies, integrating seamlessly into your application as a natural extension of the framework.
 
+## Screenshots
+
+![Dashboard](https://humadroid-static-assets.s3.amazonaws.com/beskar/beskar-dashboard.png)
+
+| Security Events | Banned IPs |
+|:---------------:|:----------:|
+| ![Security Events](https://humadroid-static-assets.s3.amazonaws.com/beskar/beskar-security-event.png) | ![Banned IPs](https://humadroid-static-assets.s3.amazonaws.com/beskar/beskar-banned-ips.png) |
+
 ## Table of Contents
 
 - [Features](#features)
