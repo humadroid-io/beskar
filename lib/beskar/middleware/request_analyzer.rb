@@ -20,7 +20,7 @@ module Beskar
             Beskar::Logger.warn("🔍 MONITOR-ONLY: Would block request from banned IP: #{ip_address}, but monitor_only=true. Request proceeding normally.", component: :Middleware)
           else
             Beskar::Logger.warn("Blocked request from banned IP: #{ip_address}", component: :Middleware)
-            return blocked_response("Your IP address has been blocked due to suspicious activity.")
+            return blocked_response(I18n.t("beskar.blocked_page.ip_blocked"))
           end
         end
 
@@ -78,7 +78,7 @@ module Beskar
                   "with WAF score #{current_score.round(2)}", component: :Middleware)
                 # Block already handled by WAF.record_violation auto-block logic
                 # But we return 403 immediately
-                return blocked_response("Access denied due to suspicious activity.")
+                return blocked_response(I18n.t("beskar.blocked_page.access_denied"))
               end
             end
           else
@@ -241,7 +241,7 @@ module Beskar
         [
           403,
           {
-            "Content-Type" => "text/html",
+            "Content-Type" => "text/html; charset=utf-8",
             "X-Beskar-Blocked" => "true"
           },
           [render_blocked_page(message)]
@@ -252,7 +252,7 @@ module Beskar
         [
           429,
           {
-            "Content-Type" => "text/html",
+            "Content-Type" => "text/html; charset=utf-8",
             "Retry-After" => "3600",
             "X-Beskar-Rate-Limited" => "true"
           },
@@ -265,7 +265,8 @@ module Beskar
           <!DOCTYPE html>
           <html>
           <head>
-            <title>Access Denied</title>
+            <meta charset="utf-8">
+            <title>#{I18n.t("beskar.blocked_page.title")}</title>
             <style>
               body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
               h1 { color: #d32f2f; }
@@ -273,9 +274,9 @@ module Beskar
             </style>
           </head>
           <body>
-            <h1>Access Denied</h1>
+            <h1>#{I18n.t("beskar.blocked_page.heading")}</h1>
             <p>#{message}</p>
-            <p>If you believe this is an error, please contact the site administrator.</p>
+            <p>#{I18n.t("beskar.blocked_page.contact_admin")}</p>
           </body>
           </html>
         HTML
@@ -286,7 +287,8 @@ module Beskar
           <!DOCTYPE html>
           <html>
           <head>
-            <title>Too Many Requests</title>
+            <meta charset="utf-8">
+            <title>#{I18n.t("beskar.rate_limit_page.title")}</title>
             <style>
               body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
               h1 { color: #ff9800; }
@@ -294,8 +296,8 @@ module Beskar
             </style>
           </head>
           <body>
-            <h1>Too Many Requests</h1>
-            <p>You have exceeded the rate limit. Please try again later.</p>
+            <h1>#{I18n.t("beskar.rate_limit_page.heading")}</h1>
+            <p>#{I18n.t("beskar.rate_limit_page.message")}</p>
           </body>
           </html>
         HTML
