@@ -1,0 +1,20 @@
+de:
+  devise:
+    failure:
+      account_locked_due_to_high_risk: "Dein Zugriff wurde aufgrund verdächtiger Aktivitäten gesperrt. Bitte kontaktiere unseren Support oder warte auf die automatische Entsperrung."
+
+  beskar:
+    account_locking:
+      high_risk_detected: "Verdächtige Aktivitäten erkannt"
+      locked_for_security: "Zugriff aus Sicherheitsgründen gesperrt"
+      contact_support: "Bitte kontaktiere den Support, um dein Konto zu entsperren"
+    blocked_page:
+      title: "Zugriff verweigert"
+      heading: "Zugriff verweigert"
+      contact_admin: "Wenn du glaubst, dass dies ein Fehler ist, kontaktiere bitte unseren Support."
+      ip_blocked: "Deine IP-Adresse wurde aufgrund verdächtiger Aktivitäten blockiert."
+      access_denied: "Zugriff aufgrund verdächtiger Aktivitäten verweigert."
+    rate_limit_page:
+      title: "Zu viele Anfragen"
+      heading: "Zu viele Anfragen"
+      message: "Du hast das Anfragelimit überschritten. Bitte versuche es später erneut."

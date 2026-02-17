@@ -2,9 +2,19 @@ en:
   devise:
     failure:
       account_locked_due_to_high_risk: "Your account has been locked due to suspicious activity. Please contact support or wait for automatic unlock."
-  
+
   beskar:
     account_locking:
       high_risk_detected: "High risk activity detected on your account"
       locked_for_security: "Account locked for security reasons"
       contact_support: "Please contact support to unlock your account"
+    blocked_page:
+      title: "Access Denied"
+      heading: "Access Denied"
+      contact_admin: "If you believe this is an error, please contact the site administrator."
+      ip_blocked: "Your IP address has been blocked due to suspicious activity."
+      access_denied: "Access denied due to suspicious activity."
+    rate_limit_page:
+      title: "Too Many Requests"
+      heading: "Too Many Requests"
+      message: "You have exceeded the rate limit. Please try again later."
