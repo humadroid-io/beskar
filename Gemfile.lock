@@ -133,7 +133,7 @@ GEM
     maxminddb (0.1.22)
     mini_mime (1.1.5)
     minitest (5.25.5)
-    mocha (2.7.1)
+    mocha (3.0.2)
       ruby2_keywords (>= 0.0.5)
     net-imap (0.5.10)
       date
