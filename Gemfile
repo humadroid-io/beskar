@@ -17,6 +17,6 @@ gem "standard", require: false
 
 gem "devise"
 
-gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.22"
 
 gem "debug"
